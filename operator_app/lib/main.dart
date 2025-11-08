@@ -11,7 +11,7 @@ void main() => runApp(MaterialApp(
   routes: {
     '/': (context) => Home(),
     '/formulas_list' : (context) => FormulasList(),
-    '/profile' : (context) => Profile(), // <-- ДОБАВЛЕНО
+    '/profile' : (context) => Profile(),
     '/history': (context) => History(),
     '/report': (context) => Report(),
 

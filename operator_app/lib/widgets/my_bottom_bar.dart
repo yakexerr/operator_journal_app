@@ -36,10 +36,10 @@ class MyBottomBar extends StatelessWidget {
           ),
       ],
       currentIndex: this.currentIndex,
-      selectedItemColor: Colors.grey[800],
+      selectedItemColor: const Color.fromARGB(255, 0, 0, 0),
       onTap: (index) => this.onTap(index),
       type: BottomNavigationBarType.fixed,
-      unselectedItemColor: const Color.fromARGB(255, 70, 62, 62),
+      unselectedItemColor: const Color.fromARGB(255, 95, 84, 70)
     );
   }
 }
