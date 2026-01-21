@@ -39,6 +39,15 @@ class _FormulasListState extends State<FormulasList> {
       title: 'Рассчёт дебит скаважины',
       routeName: 'formuls/input_pressure', 
       ),
+    Formula(
+      title: 'Тестовая страница',
+      routeName: '/test', 
+      ),
+
+    Formula(
+      title: 'Гидростатическое давление столба жидкости',
+      routeName: '/hidrostatic_pressure', 
+      ),
   ];
 
   List<Formula> _filtredFormulaList = []; // его показываем юзеру
