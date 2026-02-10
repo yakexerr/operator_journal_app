@@ -22,9 +22,6 @@ class Formula {
 class _FormulasListState extends State<FormulasList> {
 
   final List<Formula> formulaList = [
-    Formula (
-      title: 'Проба',
-      routeName: '/pump_efficiency'),
     Formula(
       title:'Рассчёт эффективности насоса',
       routeName: 'formuls/pump_efficiency', 
@@ -39,14 +36,16 @@ class _FormulasListState extends State<FormulasList> {
       title: 'Рассчёт дебит скаважины',
       routeName: 'formuls/input_pressure', 
       ),
-    Formula(
-      title: 'Тестовая страница',
-      routeName: '/test', 
-      ),
+
 
     Formula(
       title: 'Гидростатическое давление столба жидкости',
       routeName: '/hidrostatic_pressure', 
+      ),
+
+    Formula(
+      title: 'Универсальная газовая формула',
+      routeName: '/universal_gas_formula', 
       ),
   ];
 
