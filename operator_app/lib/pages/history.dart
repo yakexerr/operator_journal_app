@@ -3,9 +3,11 @@ import 'package:operator_app/models/calculation_model.dart';
 import 'package:operator_app/models/report_model.dart';
 import 'package:operator_app/repositories/local_db_repository.dart';
 import 'package:operator_app/utils/navigation_helper.dart';
+import 'package:operator_app/widgets/action_bottom_bar_with_report.dart';
 import 'package:operator_app/widgets/my_app_bar.dart';
 import 'package:operator_app/widgets/my_bottom_bar.dart';
 import 'package:operator_app/repositories/calculation_repository.dart';
+import 'package:operator_app/widgets/selection_app_bar.dart';
 
 class History extends StatefulWidget {
   const History({super.key});
@@ -18,68 +20,37 @@ class _HistoryState extends State<History> {
 
   @override
   void initState() {
-    super.initState(); // Всегда вызывайте super.initState() в самом начале
-    
-    // ВЫПОЛНЯЕМ "ОБЕЩАНИЕ":
-    // Запускаем загрузку данных один раз, когда страница создается.
-    _calculationsFuture = repository.getAllCalculations(); 
+    super.initState();
+    _loadCalcs(); // Этого достаточно
   }
 
 
-  bool _isSelectinMode = false;
+  bool _isSelectionMode = false;
   final Set<int> _selectedIds = {};
-
-  late Future<List<Calculation>> _calculationsFuture;
-
+  // late Future<List<Calculation>> _calculationsFuture;
   final CalculationRepository repository = LocalDbRepository();
 
-  Widget _buildActionBottomBar() {
-    return Container(
-      height: 60,
-      color: Colors.blueGrey[800],
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly, // равномерное распределение кнопок
-        children: [
-          InkWell( // делаем область кликабельной для кнопки удаления
-            onTap:() async {
-              await repository.deleteCalculations(_selectedIds.toList());
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("${_selectedIds.length} записей удалено"))
-              );
+  // для поиска
+  final _searchController = TextEditingController();
+  List<Calculation> _allCalcs = [];      // Все отчеты из БД
+  List<Calculation> _filteredCalcs = []; // Отфильтрованные поиском
+  bool _isLoading = true;                // Флаг для индикатора загрузки
 
-              setState(() {
-                _calculationsFuture = repository.getAllCalculations();
-              });
 
-              _isSelectinMode = false;
-              _selectedIds.clear();
-            },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.delete, color: Colors.white),
-                Text('Удалить', style: TextStyle(color: Colors.white)),
-              ],
-            ),
-          ),
-          // кнопка добавления
-          InkWell(
-            onTap: () {
-              _showReportSelectionSheet(context, _selectedIds);
-            },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_to_photos, color: Colors.white), 
-                Text("В отчет", style: TextStyle(color: Colors.white)),
-              ],
-            ),
-          )
-        ]
-        ),
-    );
+  void _loadCalcs() async {
+    setState(() {
+      _isLoading = true;
+    });
+    final calcs = await repository.getAllCalculations();
+
+    setState(() {
+      _allCalcs = calcs;
+      _filteredCalcs = calcs;
+      _isLoading = false;
+    });
   }
+
 
   // это панелька с отчётами в которые можно добавить формулы
   // В _HistoryState
@@ -89,7 +60,7 @@ class _HistoryState extends State<History> {
       builder: (BuildContext bc) {
         // Используем FutureBuilder, чтобы загрузить список отчетов
         return FutureBuilder<List<Report>>(
-          future: repository.getAllReports(), // Вызываем метод из репозитория
+          future: repository.getReportsByStatus('draft'), // Вызываем метод из репозитория
           builder: (context, snapshot) {
             if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
             
@@ -116,7 +87,6 @@ class _HistoryState extends State<History> {
     );
   }
 
-  // В _HistoryState
   void _showConfirmationDialog(BuildContext context, Set<int> selectedIds, Report report) {
     showDialog(
       context: context,
@@ -131,14 +101,14 @@ class _HistoryState extends State<History> {
             ),
             TextButton(
               child: Text("Да"),
-              onPressed: () async { // Делаем асинхронным
-                // Выполняем основное действие!
+              onPressed: () async { // делаем асинхронным
+                // выполняем основное действие
                 await repository.addCalculationsToReport(selectedIds.toList(), report.id!);
-                Navigator.of(context).pop(); // Закрываем диалог
+                Navigator.of(context).pop(); // закрываем диалог
                 
-                // Очищаем выбор и выходим из режима выбора
+                // очищаем выбор и выходим из режима выбора
                 setState(() {
-                  _isSelectinMode = false;
+                  _isSelectionMode = false;
                   _selectedIds.clear();
                 });
 
@@ -153,134 +123,188 @@ class _HistoryState extends State<History> {
     );
   }
 
-  // режимный appbar
-  AppBar _buildSelectionAppBar() {
-    return AppBar(
-      leading:  IconButton(
-        icon: Icon(Icons.close),
-        onPressed: () {
-          setState(() {
-            _isSelectinMode = false;
-            _selectedIds.clear();
-          });
-        },
-      ),
-      title: Text('${_selectedIds.length} выбрано'),
-      actions: [],
-    );
-  }
-  
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: _isSelectinMode
-        ? _buildSelectionAppBar()
-        : MyAppBar(title: 'История'),
-      body: FutureBuilder<List<Calculation>>
-      (
-        future: _calculationsFuture, 
-        builder: (BuildContext context, AsyncSnapshot<List<Calculation>> snapshot){
-          if(snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          else if (snapshot.hasError) {
-            return Center(child: Text("Ошибка загрузки данных: ${snapshot.error}"));
-          }
-          else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text("История пока пуста"));
-          }
-          else {
-            final calculations = snapshot.data!;
-            return ListView.builder(
-              itemCount: calculations.length,
-              itemBuilder: (context, index) {
-                final calc = calculations[index]; // берем текущий расчет
-                final isSelected = _selectedIds.contains(calc.id);
-
-                // оборачиваем нашу карточку в Dismissible
-                return Dismissible(
-                  
-                  // флатер должен уникально идентифицировать каждый элемент, чтобы правильно
-                  // его анимировать и удалить, получилось что ID из базы данных самый идеальный ключ
-                  key: ValueKey(calc.id),
-
-                  direction: _isSelectinMode ? DismissDirection.none // если в режиме выбора то смахивать нельзя
-                  : DismissDirection.endToStart, // иначе можно
-
-                  // ЧТО ДЕЛАТЬ ПОСЛЕ СМАХИВАНИЯ (onDismissed)
-                  // эта функция вызовется, когда анимация смахивания завершится
-                  onDismissed: (direction) async { // делаем ее асинхронной
-                    
-                    // вызываем метод удаления из нашего репозитория
-                    await repository.deleteCalculation(calc.id!); // calc.id может быть null, '!' говорит, что мы уверены, что он есть
-
-                    // показываем сообщение об успехе
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Расчет "${calc.title}" удален'))
-                    );
-
-                    // обновляем UI, чтобы элемент исчез из списка
-                    // самый простой способ это удалить элемент из локального списка и вызвать setState
-                    setState(() {
-                      _calculationsFuture = repository.getAllCalculations();
-                    });
-                  },
-
-                  // ФОН
-                  // это то, что пользователь видит ПОД карточкой, когда смахивает ее
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Icon(Icons.delete, color: Colors.white),
-                  ),
-
-                  // ДОЧЕРНИЙ ЭЛЕМЕНТ
-                  // это обычный виджет, который можно смахнуть
-
-                  child: Card(
-                    color: isSelected ? Colors.blueGrey[700] : null,
-                    child: ListTile(
-                      title: Text(calc.title),
-                      subtitle: Text("Результат: ${calc.result}"),
-                      // trailing: Text(calc.createdAt.substring(0, 10)),
-                      onLongPress: () {
-                        if(!_isSelectinMode) {
-                          setState(() {
-                            _isSelectinMode = true;
-                            _selectedIds.add(calc.id!);
-                          });
-                        }
-                      },
-                      onTap: () {
-                        if (_isSelectinMode) {
-                          setState(() {
-                            if (isSelected) {
-                              _selectedIds.remove(calc.id!);
-                            } else {
-                              _selectedIds.add(calc.id!);
-                            }
-                          });
-                        }
-                      },
+      backgroundColor: Colors.white,
+      appBar: _isSelectionMode
+          ? SelectionAppBar(
+              selectionCount: _selectedIds.length,
+              onClearSelection: () {
+                setState(() {
+                  _isSelectionMode = false;
+                  _selectedIds.clear();
+                });
+              })
+          : MyAppBar(title: 'История'),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column( 
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _filteredCalculations,
+                    decoration: const InputDecoration(
+                      labelText: 'Поиск результатов',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
                     ),
                   ),
+                ),
+                
+                Expanded(
+                  child: _allCalcs.isEmpty
+                      ? const Center(child: Text("История пока пуста", style: TextStyle(color: Colors.grey, fontSize: 24)))
+                      : _filteredCalcs.isEmpty
+                          ? const Center(child: Text("Ничего не найдено", style: TextStyle(color: Colors.grey, fontSize: 24)))
+                          : ListView.builder(
+                              itemCount: _filteredCalcs.length,
+                              itemBuilder: (context, index) {
+                                final calc = _filteredCalcs[index];
+                                final isSelected = _selectedIds.contains(calc.id);
+
+                                // логика определения: нужен ли заголовок?
+                                bool showHeader = false;
+                                DateTime currentDay = DateTime.parse(calc.createdAt).toLocal();
+
+                                if (index == 0) {
+                                  showHeader = true;
+                                } else {
+                                  DateTime previousDay = DateTime.parse(_filteredCalcs[index - 1].createdAt).toLocal();
+                                  if (currentDay.day != previousDay.day || 
+                                      currentDay.month != previousDay.month || 
+                                      currentDay.year != previousDay.year) {
+                                    showHeader = true;
+                                  }
+                                }
+
+                                // переделал на COLUMN, чтобы заголовок встал над карточкой
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start, // прижать заголовок влево
+                                  children: [
+                                    if (showHeader)
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                                        child: Text(
+                                          
+                                          _formatDate(calc.createdAt).toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.blueGrey[400],
+                                            letterSpacing: 1.2,
+                                          ),
+                                        ),
+                                      ),
+                                    
+                                    
+                                    Dismissible(
+                                      key: ValueKey(calc.id),
+                                      direction: _isSelectionMode ? DismissDirection.none : DismissDirection.endToStart,
+                                      onDismissed: (direction) async {
+                                        await repository.deleteCalculation(calc.id!);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Расчет "${calc.title}" удален'))
+                                        );
+                                        _loadCalcs();
+                                      },
+                                      background: Container(
+                                        color: Colors.red,
+                                        alignment: Alignment.centerRight,
+                                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                                        child: const Icon(Icons.delete, color: Colors.white),
+                                      ),
+                                      child: Card(
+                                        color: isSelected ? Colors.blueGrey[700] : null,
+                                        shape: RoundedRectangleBorder(
+                                          side: BorderSide(color: Colors.grey.withOpacity(0.5), width: 1), // Сделал чуть тоньше
+                                          borderRadius: BorderRadius.circular(12.0)
+                                        ),
+                                        child: ListTile(
+                                          title: Text(calc.title),
+                                          // Добавим время замера
+                                          subtitle: Text("Результат: ${calc.result} | ${calc.createdAt.substring(11, 16)}"),
+                                          onLongPress: () {
+                                            if (!_isSelectionMode) {
+                                              setState(() {
+                                                _isSelectionMode = true;
+                                                _selectedIds.add(calc.id!);
+                                              });
+                                            }
+                                          },
+                                          onTap: () {
+                                            if (_isSelectionMode) {
+                                              setState(() {
+                                                if (isSelected) {
+                                                  _selectedIds.remove(calc.id!);
+                                                  if (_selectedIds.isEmpty) _isSelectionMode = false;
+                                                } else {
+                                                  _selectedIds.add(calc.id!);
+                                                }
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                )
+              ],
+            ),
+      bottomNavigationBar: _isSelectionMode
+          ? ActionBottomBarWithReport(
+              selectedIds: _selectedIds,
+              onDelete: () async {
+                await repository.deleteCalculations(_selectedIds.toList());
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("${_selectedIds.length} записей удалено"))
                 );
+                _loadCalcs(); 
+                setState(() {
+                  _isSelectionMode = false;
+                  _selectedIds.clear();
+                });
               },
-            );
-          }
-        }),
-      
-      bottomNavigationBar: _isSelectinMode ? _buildActionBottomBar()
-      : MyBottomBar(
-        currentIndex: 2, 
-        onTap: (index) {
-          if (index != 2)
-            onBottomNavTaped(context, index);
-        }
-        ),  
-    ); 
+              onAddToReport: () {
+                _showReportSelectionSheet(context, _selectedIds);
+              },
+            )
+          : MyBottomBar(
+              currentIndex: 2,
+              onTap: (index) {
+                if (index != 2) onBottomNavTaped(context, index);
+              }),
+    );
   }
+
+  void _filteredCalculations(String query) {
+    setState(() {
+      _filteredCalcs = _allCalcs.where(
+        (calc) => calc.title.toLowerCase().contains(query.toLowerCase())
+      ).toList();
+    });
+  }
+
+
+  // для красивой даты
+  String _formatDate(String isoDate) {
+    DateTime date = DateTime.parse(isoDate).toLocal();
+    List<String> months = ['января', 'февраля', 'марта',
+    'апреля', 'мая', 'июня', 'июля', 'авгуса', 'сентября',
+    'октября', 'ноября' , 'декабря'];
+
+    // проверка на "Сегодня" для пущего эффекта
+    DateTime now = DateTime.now();
+    if (date.day == now.day && date.month == now.month && date.year == now.year) {
+      return "Сегодня";
+    }
+
+    return "${date.day} ${months[date.month - 1]}";
+  }
+
 }

@@ -14,22 +14,22 @@ class _ProfileState extends State<Profile> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Colors.white,
       appBar: MyAppBar(title: 'Профиль'),
       body: SafeArea(
-        child: Center( // Обернем в Center, чтобы все было по центру
-          child: Column( // Используем Column для вертикального расположения
-            crossAxisAlignment: CrossAxisAlignment.center, // Выравниваем по центру
+        child: Center( 
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center, // выравниваем по центру
             children: [
-              SizedBox(height: 40), // Отступ сверху
+              SizedBox(height: 40), // отступ сверху
               CircleAvatar(
-                radius: 50, // Зададим радиус аватару
-                backgroundImage: AssetImage('assets/_.jpeg'), // Укажите правильный путь
+                radius: 50, // радиус аватара
+                backgroundImage: AssetImage('assets/_.jpeg'), // правильный путь до фото
               ),
-              SizedBox(height: 20), // Отступ между аватаром и текстом
+              SizedBox(height: 20), // отступ между аватаром и текстом
               Text(
                 'Name Lastname',
-                style: TextStyle(fontSize: 25, color: Colors.white),
+                style: TextStyle(fontSize: 25, color: Colors.black),
               ),
             ],
           ),

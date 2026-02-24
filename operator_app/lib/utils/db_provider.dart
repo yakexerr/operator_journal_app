@@ -28,10 +28,10 @@ class DBProvider {
 
   static Future<void> addCalculationsToReport(List<int> calculationIds, int reportId) async {
     final db = await database;
-    // SQL-команда UPDATE, которая для всех нужных id проставит report_id
+    // SQL-команда UPDATE, которая для всех нужных id проставит reportId
     await db.update(
       CALC_TABLE_NAME,
-      {'report_id': reportId},
+      {'reportId': reportId},
       where: 'id IN (${calculationIds.map((_) => '?').join(',')})',
       whereArgs: calculationIds,
     );
@@ -68,8 +68,9 @@ class DBProvider {
       onCreate: (Database db, int version) async {
 
         print("--- [DB_PROVIDER] ON_CREATE: Создаю таблицу $CALC_TABLE_NAME ---");
-        await db.execute(CREATE_CALC_TABLE);
         await db.execute(CREATE_REPORTS_TABLE);
+        await db.execute(CREATE_CALC_TABLE);
+        
 
         print("--- [DB_PROVIDER] ON_CREATE: Создаю таблицу $CONSTS_TABLE_NAME ---");
         await db.execute(CONSTS_TABLE);
@@ -78,6 +79,11 @@ class DBProvider {
         await db.execute(g_insert_query);
         await db.execute(pi_insert_query);
         await db.execute(usniversal_gas_constant);
+
+        await db.execute(CREATE_OBJECTS_TABLE);
+
+        //TODO удалить потом
+        await db.execute("INSERT INTO Objects (name, type) VALUES ('Тестовая Скважина', 'Well')");
 
       }
     );
@@ -98,7 +104,7 @@ class DBProvider {
   static Future<List<Calculation>> getAllCalculations() async {
     final db = await database;
     print("--- [DB_PROVIDER] GET_ALL: Пытаюсь прочитать все из таблицы $CALC_TABLE_NAME ---");
-    final List<Map<String, dynamic>> maps = await db.query(CALC_TABLE_NAME);
+    final List<Map<String, dynamic>> maps = await db.query(CALC_TABLE_NAME, orderBy: 'id DESC');
     print("--- [DB_PROVIDER] GET_ALL: Получено ${maps.length} записей. Вот они: $maps ---");
     return List.generate(maps.length, (i) {
       return Calculation.fromMap(maps[i]);
@@ -125,13 +131,14 @@ class DBProvider {
   static const String DB_NAME = "operator_journal.db";
   static const String CALC_TABLE_NAME = "Calculations";
   static const String CREATE_CALC_TABLE = '''
-    CREATE TABLE $CALC_TABLE_NAME (
+    CREATE TABLE Calculations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       result REAL NOT NULL,
       created_at TEXT NOT NULL,
-      is_synced INTEGER NOT NULL DEFAULT 0,
-      report_id INTEGER NULL -- <-- НОВАЯ КОЛОНКА (может быть пустой)
+      objectId INTEGER NOT NULL,
+      formulaId TEXT NOT NULL,
+      reportId INTEGER -- Имя должно совпадать с запросом выше!
     )
   ''';
   static const String CONSTS_TABLE_NAME = 'Constants';
@@ -155,7 +162,32 @@ class DBProvider {
   INSERT INTO $CONSTS_TABLE_NAME (name, value) VALUES ('R', ${8.314})
   ''';
 
+  // автоподстановка
+  static Future<List<Calculation>> findFreshCalculations({
+    required int objectId, 
+    required List<String> requiredFormulaIds,
+    required int currentReportId, // Добавляем ID текущего отчета
+  }) async {
+    final db = await database;
+    final dayAgo = DateTime.now().toUtc().subtract(const Duration(hours: 24)).toUtc().toIso8601String();
+    /*
+    Теперь ищем рассчёты, которые
+    Привязаны к объекту, за последние 24 часа,
+    с нужным formulaId, но ещё бы по хорошему сделать так чтобы 
+    и не привязанные к другим отчётам, иначе будет переписывать id 
+    так что или копию делать или оставить так
+    
+    добавил условие  (reportId IS NULL OR reportId != ?)
+    это исключит те расчеты, которые уже находятся в этом отчете
+    */
+      final List<Map<String, dynamic>> maps = await db.query(
+      'Calculations',
+      where: 'objectId = ? AND created_at > ? AND (reportId IS NULL OR reportId != ?) AND formulaId IN (${requiredFormulaIds.map((_) => '?').join(',')})',
+      whereArgs: [objectId, dayAgo, currentReportId, ...requiredFormulaIds],
+    );
 
+    return maps.map((e) => Calculation.fromMap(e)).toList();
+  }
 
   // ----- ОТЧЁТЫ
   static const String REPORTS_TABLE_NAME = "Reports";
@@ -163,11 +195,10 @@ class DBProvider {
     CREATE TABLE $REPORTS_TABLE_NAME (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'draft'
+      status TEXT NOT NULL DEFAULT 'draft',
+      description TEXT NOT NULL
     )
   ''';
-
-
 
   static Future<void> deleteReport(int id) async {
     final db = await database;
@@ -202,7 +233,7 @@ class DBProvider {
     if(calculationIds.isEmpty) return;
     final db = await database;
     await db.update(
-      CALC_TABLE_NAME, {'report_id': null},
+      CALC_TABLE_NAME, {'reportId': null},
       where: 'id IN (${calculationIds.map((_) => '?').join(',')})',
       whereArgs: calculationIds
       );
@@ -239,26 +270,27 @@ class DBProvider {
   }
 
 
-  static Future<void> createReport(String title) async {
-    final db = await database;
-    await db.insert(
-      REPORTS_TABLE_NAME, 
-      {'title': title},
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-    print("--- [DB_PROVIDER] Успешно создан отчет с названием: $title ---");
-  }
+  static Future<void> createReport(String title, String description) async { // Добавили аргумент
+  final db = await database;
+  await db.insert(
+    REPORTS_TABLE_NAME,
+    {
+      'title': title,
+      'status': 'draft',
+      'description': description, // ОБЯЗАТЕЛЬНО передаем это поле
+    },
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
+  print("--- [DB_PROVIDER] Отчет создан: $title ---");
+}
 
   static Future<List<Calculation>> getCalculationsByReportId(int reportId) async {
     final db = await database;
-    
-    // Выполняем SELECT ... FROM Calculations WHERE report_id = ?
     final List<Map<String, dynamic>> maps = await db.query(
-      CALC_TABLE_NAME,
-      where: 'report_id = ?', // Условие
-      whereArgs: [reportId], // Значение для условия (защита от SQL-инъекций)
+      'Calculations',
+      where: 'reportId = ?', 
+      whereArgs: [reportId],
     );
-    
     return List.generate(maps.length, (i) => Calculation.fromMap(maps[i]));
   }
 
@@ -267,9 +299,34 @@ class DBProvider {
     final List<Map<String, dynamic>> maps = await db.query(
       REPORTS_TABLE_NAME,
       where: 'status = ?',
-      whereArgs: [status]
+      whereArgs: [status],
+      orderBy: "id DESC"
     );
     return List.generate(maps.length, (i) => Report.fromMap(maps[i]));
   }
+
+  static Future<List<Report>> getHomeReports() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      REPORTS_TABLE_NAME,
+      where: "status IN ('generated', 'send')",
+      orderBy: "id DESC"
+    );
+    return List.generate(maps.length, (i) => Report.fromMap(maps[i]));
+  }
+
+
+  /*
+  ОБЪЕКТЫ
+  */
+
+  static const String OBJECTS_TABLE_NAME = "Objects";
+  static const String CREATE_OBJECTS_TABLE = '''
+    CREATE TABLE $OBJECTS_TABLE_NAME (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL 
+    )
+  ''';
 
 }

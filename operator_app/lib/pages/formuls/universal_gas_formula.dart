@@ -4,6 +4,7 @@ import 'package:operator_app/models/calculation_model.dart';
 import 'package:operator_app/repositories/calculation_repository.dart';
 import 'package:operator_app/repositories/local_db_repository.dart';
 import 'package:operator_app/widgets/my_app_bar.dart';
+import 'package:operator_app/widgets/pop_score.dart';
 
 class UniversalGasFormula extends StatefulWidget {
   const UniversalGasFormula({super.key});
@@ -43,59 +44,73 @@ class _UniversalGasFormulaState extends State<UniversalGasFormula> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: MyAppBar(title: formulaName),
-      body: FutureBuilder(future: RFuture, 
-      builder: (context, snapshot) {
-        if(snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {return Center(child: Text("Ошибка загрузки: ${snapshot.error}", style: TextStyle(fontSize: 24, color: Colors.grey),));}
-        if (snapshot.hasData) {
-          final double RValue = snapshot.data!;
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0), 
-              child: Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text("pV = ", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey)),
-                  buildMathInput(nController, "n", (val) {_calculate(RValue);}),
-                  Text(" × ", style: TextStyle(fontSize: 24, color: Colors.grey)),
-                  Text(RValue.toString(), style: TextStyle(fontSize: 24, color: Colors.grey)),  
-                  Text(" × ", style: TextStyle(fontSize: 24, color: Colors.grey)), 
-                  buildMathInput(TController, "T", (val) {_calculate(RValue);}),
-                  Text(" = ${result.toStringAsFixed(2)} Па", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey)),
+    return FormulaPopScope(
+      controllers: [nController, TController], 
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: MyAppBar(title: formulaName),
+        body: FutureBuilder(future: RFuture, 
+        builder: (context, snapshot) {
+          if(snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {return Center(child: Text("Ошибка загрузки: ${snapshot.error}", style: TextStyle(fontSize: 24, color: Colors.grey),));}
+          if (snapshot.hasData) {
+            final double RValue = snapshot.data!;
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0), 
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text("pV = ", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
+                    buildMathInput(nController, "n", (val) {_calculate(RValue);}),
+                    Text(" × ", style: TextStyle(fontSize: 24, color: Colors.black)),
+                    Text(RValue.toString(), style: TextStyle(fontSize: 24, color: Colors.black)),  
+                    Text(" × ", style: TextStyle(fontSize: 24, color: Colors.black)), 
+                    buildMathInput(TController, "T", (val) {_calculate(RValue);}),
+                    Text(" = ${result.toStringAsFixed(2)} Па", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
 
-                ],
-              ), 
-            ),
-          );
-        }
-        return Center(child: Text("Нет данных"));
-      } 
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.grey,
-        onPressed: () async {
-          final CalculationRepository repository = LocalDbRepository();
-          final newCalculation = Calculation(
-            title: "Рассчёт ${formulaName}", 
-            result: result, 
-            createdAt: DateTime.now().toIso8601String()
+                  ],
+                ), 
+              ),
             );
-          await repository.createCalculation(newCalculation);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Рассчёт сохранён!'))
-          );
-        },
-        child: Icon(
-          Icons.save,
-          color:  Colors.white,
-          semanticLabel: "Сщхранить результат",
+          }
+          return Center(child: Text("Нет данных"));
+        } 
         ),
-        ),
+        floatingActionButton: SizedBox(
+          width: 80.0,
+          height: 80.0,
+          child: FloatingActionButton(
+            backgroundColor: Colors.lightBlueAccent,
+            onPressed: () async {
+              
+              final CalculationRepository repository = LocalDbRepository();
+              final newCalculation = Calculation(
+                title: 'Рассчёт "${formulaName}"', 
+                formulaId: "universal_gas_formula",
+                result: result, 
+                createdAt: DateTime.now().toUtc().toIso8601String(),
+                objectId: 1,
+                );
+              await repository.createCalculation(newCalculation);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Рассчёт сохранён!'))
+                );
+
+              }
+
+            },
+            child: Icon(
+              Icons.save,
+              color:  Colors.white,
+              semanticLabel: "Сохранить результат",
+            ),
+          ),
+        )
+      )
     );
   }
 
@@ -122,7 +137,7 @@ class _UniversalGasFormulaState extends State<UniversalGasFormula> {
         style: TextStyle(color: Colors.blueAccent, fontSize: 22, fontWeight: FontWeight.bold),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.grey.withOpacity(0.05)),
+          hintStyle: TextStyle(color: Colors.grey[500]),
           border: UnderlineInputBorder(),
           isDense: true,
           contentPadding: EdgeInsets.symmetric(vertical: 5),

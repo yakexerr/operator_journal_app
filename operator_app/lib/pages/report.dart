@@ -4,8 +4,10 @@ import 'package:operator_app/pages/report_details_page.dart';
 import 'package:operator_app/repositories/calculation_repository.dart';
 import 'package:operator_app/repositories/local_db_repository.dart';
 import 'package:operator_app/utils/navigation_helper.dart';
+import 'package:operator_app/widgets/action_bottom_bar.dart';
 import 'package:operator_app/widgets/my_app_bar.dart';
 import 'package:operator_app/widgets/my_bottom_bar.dart';
+import 'package:operator_app/widgets/selection_app_bar.dart';
 
 class Report extends StatefulWidget {
   const Report({super.key});
@@ -15,194 +17,132 @@ class Report extends StatefulWidget {
 }
 
 class _ReportState extends State<Report> {
-  late Future<List<model.Report>> _reportsFuture;
+  final CalculationRepository repository = LocalDbRepository();
   final Set<int> _selectedIds = {};
   bool _isSelectionMode = false;
-  final CalculationRepository repository = LocalDbRepository();
+
+  final _searchController = TextEditingController();
+  List<model.Report> _allReports = [];      // Все отчеты из БД
+  List<model.Report> _filteredReports = []; // Отфильтрованные поиском
+  bool _isLoading = true;                   // Флаг для индикатора загрузки
 
   @override
   void initState() {
     super.initState();
-    _loadReports();
+    _loadReports(); // Загружаем данные при старте
   }
 
-  void _loadReports() {
+  // Загружаем данные один раз из БД в локальный список
+  void _loadReports() async {
+    setState(() => _isLoading = true);
+    
+    final reports = await repository.getReportsByStatus('draft');
+    
     setState(() {
-      _reportsFuture = repository.getAllReports();
+      _allReports = reports;
+      _filteredReports = reports; // В начале отфильтрованный список равен всем данным
+      _isLoading = false;
+    });
+  }
+
+  // Логика поиска (фильтруем уже имеющийся в памяти список)
+  void _filterReports(String query) {
+    setState(() {
+      _filteredReports = _allReports
+          .where((report) => report.title.toLowerCase().contains(query.toLowerCase()))
+          .toList();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: _isSelectionMode ? _buildSelectionAppBar() : MyAppBar(title: 'Отчёт'),
-      body: FutureBuilder<List<model.Report>>(
-        future: repository.getReportsByStatus('draft'),
-        builder: (BuildContext context, AsyncSnapshot<List<model.Report>> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Ошибка загрузки данных: ${snapshot.error}"));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text("Список отчётов пока пуст"));
-          } else {
-            final reports = snapshot.data!;
-            return ListView.builder(
-              itemCount: reports.length,
-              itemBuilder: (context, index) {
-                final rep = reports[index];
-                final isSelected = _selectedIds.contains(rep.id);
-                return Dismissible(
-                  key: ValueKey(rep.id),
-                  direction: _isSelectionMode ? DismissDirection.none : DismissDirection.endToStart,
-                  onDismissed: (direction) async {
-                    await repository.deleteReport(rep.id!);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Отчет "${rep.title}" удален')),
-                    );
-                    _loadReports(); // Перезагружаем список
-                  },
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Icon(Icons.delete, color: Colors.white),
-                  ),
-                  child: Card(
-                    color: isSelected ? Colors.blueGrey[700] : null,
-                    child: ListTile(
-                      title: Text(rep.title),
-                      onLongPress: () {
-                        if (!_isSelectionMode) {
-                          setState(() {
-                            _isSelectionMode = true;
-                            _selectedIds.add(rep.id!);
-                          });
-                        }
-                      },
-                      onTap: () {
-                        if (_isSelectionMode) {
-                          setState(() {
-                            if (isSelected) {
-                              _selectedIds.remove(rep.id!);
-                            } else {
-                              _selectedIds.add(rep.id!);
-                            }
-                          });
-                        }
-                        else {
-                          Navigator.push(
-                            context, 
-                            MaterialPageRoute(
-                              builder: (context) => ReportDetailsPage(report: rep),
-                              )
-                            );
-                        }
-                      },
+      backgroundColor: Colors.white,
+      appBar: _isSelectionMode
+          ? SelectionAppBar(
+              selectionCount: _selectedIds.length,
+              onClearSelection: () {
+                setState(() {
+                  _isSelectionMode = false;
+                  _selectedIds.clear();
+                });
+              })
+          : MyAppBar(title: 'Отчёт'),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator()) // Ждем загрузку из БД
+          : Column(
+              children: [
+                // ПОЛЕ ПОИСКА
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _filterReports, // Фильтруем при каждом нажатии клавиши
+                    decoration: const InputDecoration(
+                      labelText: 'Поиск отчетов',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
                     ),
                   ),
-                );
-              },
-            );
-          }
-        },
-      ),
-      bottomNavigationBar: _isSelectionMode ? _buildActionBottomBar() : MyBottomBar(
-        currentIndex: 3,
-        onTap: (index) {
-          if (index != 3) onBottomNavTaped(context, index);
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.grey,
-        onPressed: () {
-          _showCreateReportDialog();
-        },
-        child: Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildActionBottomBar() {
-    return Container(
-      height: 60,
-      color: Colors.blueGrey[800],
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          InkWell(
-            onTap: () async {
-              await repository.deleteReports(_selectedIds.toList());
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("${_selectedIds.length} отчетов удалено")),
-              );
-              setState(() {
-                _isSelectionMode = false;
-                _selectedIds.clear();
-              });
-              _loadReports(); // Перезагружаем список
-            },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.delete, color: Colors.white),
-                Text('Удалить', style: TextStyle(color: Colors.white)),
+                ),
+                
+                // СПИСОК (уже отфильтрованный)
+                Expanded(
+                  child: _filteredReports.isEmpty
+                      ? const Center(child: Text("Ничего не найдено", style: TextStyle(color: Colors.grey, fontSize: 24),))
+                      : ListView.builder(
+                          itemCount: _filteredReports.length,
+                          itemBuilder: (context, index) {
+                            final rep = _filteredReports[index];
+                            final isSelected = _selectedIds.contains(rep.id);
+                            
+                            return Card(
+                                color: isSelected ? Colors.blueGrey[700] : null,
+                                shape: RoundedRectangleBorder(
+                                  side: BorderSide(
+                                    color: Colors.grey.withOpacity(0.5),
+                                    width: 3
+                                  ),
+                                  borderRadius: BorderRadius.circular(12.0)
+                                ),
+                                child: ListTile(
+                                  title: Text('Задача "${rep.title}"'),
+                                  onTap: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => ReportDetailsPage(report: rep)),
+                                    );
+                                    if (result == true) _loadReports();
+                                  },
+                                ),
+                              );
+                            
+                          },
+                        ),
+                ),
               ],
             ),
-          ),
-        ],
-      ),
+      bottomNavigationBar: _isSelectionMode ? _buildSelectionBottomBar() : MyBottomBar(currentIndex: 3, onTap: (i) => onBottomNavTaped(context, i)),
     );
   }
-
-  AppBar _buildSelectionAppBar() {
-    return AppBar(
-      leading: IconButton(
-        icon: Icon(Icons.close),
-        onPressed: () {
-          setState(() {
-            _isSelectionMode = false;
-            _selectedIds.clear();
-          });
-        },
-      ),
-      title: Text('${_selectedIds.length} выбрано'),
-    );
-  }
-
-  // Метод для отображения диалогового окна создания отчета
-  void _showCreateReportDialog() {
-    final TextEditingController titleController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Создать новый отчет"),
-          content: TextField(
-            controller: titleController,
-            decoration: InputDecoration(hintText: "Название отчета"),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              child: Text("Отмена"),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: Text("Создать"),
-              onPressed: () async {
-                final title = titleController.text;
-                if (title.isNotEmpty) {
-                  await repository.createReport(title);
-                  Navigator.of(context).pop();
-                  _loadReports(); // Перезагружаем список, чтобы увидеть новый отчет
-                }
-              },
-            ),
-          ],
+  Widget _buildSelectionBottomBar() {
+  return ActionBottomBar(
+    selectedIds: _selectedIds,
+    onDelete: () async {
+      await repository.deleteReports(_selectedIds.toList());
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("${_selectedIds.length} отчетов удалено")),
         );
-      },
-    );
-  }
+      }
+
+      setState(() {
+        _isSelectionMode = false;
+        _selectedIds.clear();
+      });
+      _loadReports(); 
+    },
+  );
+}
 }

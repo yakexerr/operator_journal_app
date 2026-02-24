@@ -24,14 +24,17 @@ abstract class CalculationRepository {
   // -------------------------- ОТЧЁТЫ
   Future<void> deleteReport(int id);
   Future<void> deleteReports(List<int> ids);
-  Future<void> createReport(String title);
+  Future<void> createReport(String title, String description);
   Future<List<Calculation>> getCalculationsByReportId(int reportId);
   Future<void> deleteCalculationFromReport(int calculationId);
   Future<void> deleteCalculationFromReportAsList(List<int> calculationIds);
   Future<List<Report>> getReportsByStatus(String status);
+  Future<List<Report>> getHomeReports();
   Future<void> changeReportStatusToDraft(List<int> reportIds);
   // TODO: исправить на единичные id, так как списками отчёты не всегда получится перекидывать, 
   Future<void> changeReportStatusToSend(List<int> reportIds);
   Future<void> changeReportStatusToGenerated(List<int> reportIds);
+
+  Future<List<Calculation>> findFreshCalculations({required int objectId, required List<String> requiredFormulaIds, required int currentReportId});
 
 }

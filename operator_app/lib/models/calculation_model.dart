@@ -1,11 +1,14 @@
 // тут типа переводчика для данных в SQLite (он глупенький и кроме текст (TEXT), числа (INTEGER, REAL)) 
 // ничего не знает
 class Calculation {
-  int? id; // id может быть null до сохранения в БД
-  String title;
-  double result;
-  String createdAt;
-  int isSynced;
+  final int? id; // id может быть null до сохранения в БД
+  final String title;
+  final double result;
+  final String createdAt;
+  final int objectId;
+  final String formulaId; // добавил - тут будет, например, "pump_efficiency"
+  int? reportId;
+
 
   // Конструктор
   Calculation({
@@ -13,7 +16,9 @@ class Calculation {
     required this.title,
     required this.result,
     required this.createdAt,
-    this.isSynced = 0, // По умолчанию 0
+    required this.objectId,
+    required this.formulaId,
+    this.reportId,
   });
 
   // Метод "toMap": превращает объект Calculation в Map.
@@ -24,7 +29,9 @@ class Calculation {
       'title': title,
       'result': result,
       'created_at': createdAt,
-      'is_synced': isSynced,
+      'objectId': objectId,
+      'formulaId': formulaId,
+      'reportId': reportId
     };
   }
 
@@ -36,7 +43,9 @@ class Calculation {
       title: map['title'],
       result: map['result'],
       createdAt: map['created_at'],
-      isSynced: map['is_synced'],
+      objectId: map['objectId'],
+      formulaId: map['formulaId'],
+      reportId: map['reportId']
     );
   }
 }

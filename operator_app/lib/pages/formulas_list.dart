@@ -24,17 +24,7 @@ class _FormulasListState extends State<FormulasList> {
   final List<Formula> formulaList = [
     Formula(
       title:'Рассчёт эффективности насоса',
-      routeName: 'formuls/pump_efficiency', 
-      ),
-
-    Formula(
-      title: 'Рассчёт давления на входе',
-      routeName: 'formuls/input_pressure', 
-      ),
-
-    Formula(
-      title: 'Рассчёт дебит скаважины',
-      routeName: 'formuls/input_pressure', 
+      routeName: '/pump_efficiency', 
       ),
 
 
@@ -84,36 +74,43 @@ class _FormulasListState extends State<FormulasList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Colors.white,
       appBar: MyAppBar(title: 'Формулы'),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column (
           children: [
             // поле для поиска
-            TextField(
-              controller: _searchController,
-              style: TextStyle(
-                color: Colors.white54,
-              ),
-              decoration: InputDecoration(
-                label: Text('Поиск'),
-                hint: Text('Введите формулу'),
-                prefix: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (query) {
-                _fiterFormulas(query);
-              },
-            ),
+            Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _fiterFormulas, // Фильтруем при каждом нажатии клавиши
+                    decoration: const InputDecoration(
+                      labelText: 'Поиск формул',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
             SizedBox(height: 10,),
             // список
             Expanded(
-              child: ListView.builder(
+              child: _filtredFormulaList.isEmpty 
+              ? const Center(child: Text("Ничего не найдено", style: TextStyle(color: Colors.grey, fontSize: 24),))
+              : ListView.builder(
                 itemCount: _filtredFormulaList.length,
                 itemBuilder: (BuildContext content, int index) {
                   final formula = _filtredFormulaList[index];
                   return Card(
+                    // elevation: 4.0,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(
+                        color: Colors.grey.withOpacity(0.5),
+                        width: 3,
+                      ),
+                      borderRadius: BorderRadius.circular(12.0)
+                    ),
                     child: ListTile(
                       title: Text(formula.title),
                       trailing: Icon(Icons.arrow_forward),

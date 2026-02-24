@@ -1,0 +1,96 @@
+import 'package:flutter/material.dart';
+import 'package:operator_app/models/calculation_model.dart';
+import 'package:operator_app/repositories/calculation_repository.dart';
+import 'package:operator_app/repositories/local_db_repository.dart';
+
+class BaseCalculationPage extends StatefulWidget {
+  final String title;
+  final String formulaId;
+  final List<Widget> inputs;
+  final VoidCallback onCalculate;
+  final String result;
+  final String formulaName;
+
+  const BaseCalculationPage({
+    super.key,
+    required this.title,
+    required this.formulaId,
+    required this.inputs,
+    required this.onCalculate,
+    required this.result,
+    required this.formulaName,
+  });
+
+  @override
+  State<BaseCalculationPage> createState() => _BaseCalculationPageState();
+}
+
+class _BaseCalculationPageState extends State<BaseCalculationPage> {
+  final CalculationRepository repository = LocalDbRepository();
+
+  void _saveToHistory() async {
+    if (widget.result == "0" || widget.result.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Сначала произведите расчет")),
+      );
+      return;
+    }
+
+    final calc = Calculation(
+    title: widget.formulaName,
+    result: double.tryParse(widget.result) ?? 0,
+    createdAt: DateTime.now().toUtc().toIso8601String(), // Сразу UTC сделаем
+    objectId: 1, // Пока заглушка
+    formulaId: widget.formulaId, // ПЕРЕДАЕМ ИЗ ВИДЖЕТА
+  );
+
+    await repository.createCalculation(calc);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Расчет сохранен в историю")),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            ...widget.inputs,
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: widget.onCalculate,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: const Text("РАССЧИТАТЬ"),
+            ),
+            const SizedBox(height: 30),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.blueGrey[50],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("РЕЗУЛЬТАТ:", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(widget.result, style: const TextStyle(fontSize: 20, color: Colors.blue)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _saveToHistory,
+        child: const Icon(Icons.save),
+      ),
+    );
+  }
+}

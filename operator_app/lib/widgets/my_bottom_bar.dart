@@ -12,7 +12,7 @@ class MyBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      backgroundColor: Colors.grey,
+      backgroundColor: const Color.fromARGB(255, 133, 212, 248),
       items: const <BottomNavigationBarItem> [
         BottomNavigationBarItem(
           icon: Icon(Icons.home),
@@ -28,7 +28,7 @@ class MyBottomBar extends StatelessWidget {
           ),
         BottomNavigationBarItem(
           icon: Icon(Icons.file_copy),
-          label: 'Отчёт'
+          label: 'Задачи'
           ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person),

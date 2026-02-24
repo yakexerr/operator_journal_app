@@ -4,6 +4,7 @@ import 'package:operator_app/widgets/my_app_bar.dart';
 import 'package:operator_app/models/calculation_model.dart';
 import 'package:operator_app/repositories/local_db_repository.dart';
 import 'package:operator_app/repositories/calculation_repository.dart';
+import 'package:operator_app/widgets/pop_score.dart';
 
 class HidrostaticPressure extends StatefulWidget {
   const HidrostaticPressure({super.key});
@@ -16,7 +17,7 @@ class _HidrostaticPressureState extends State<HidrostaticPressure> {
   final TextEditingController roController = TextEditingController();
   // final TextEditingController gController = TextEditingController();
   final TextEditingController hController = TextEditingController();
-
+// 
   final CalculationRepository repository = LocalDbRepository();
   late final Future<double> gFuture;
 
@@ -44,8 +45,10 @@ class _HidrostaticPressureState extends State<HidrostaticPressure> {
   
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
+    return FormulaPopScope(
+      controllers: [roController, hController], 
+      child: Scaffold(
+      backgroundColor: Colors.white,
       appBar: MyAppBar(title: formulaName),
       body: FutureBuilder<double>( // это для того чтобы успеть вытянуть g из базы, ведь build вызывается раньше чем выгрузиться из бд и мы можем что-то зделать пока не дойдёт, например показать загрузку
         future: gFuture, 
@@ -56,21 +59,22 @@ class _HidrostaticPressureState extends State<HidrostaticPressure> {
           if(snapshot.hasError) {return Center(child: Text('Ошибка загрузки: ${snapshot.error}', style: TextStyle(fontSize: 24, color: Colors.grey)));}
           if (snapshot.hasData) {
             final double gValue = snapshot.data!;
+            TextStyle style2 = TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black);
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Wrap( // Wrap для переноса формулы на новую строку если выйдет за границу экрана
                   crossAxisAlignment: WrapCrossAlignment.center, //
                   children: [
-                    Text("P = ", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    Text("P = ", style: style2),
                     buildMathInput(roController, "ρ", (val) {_calculate(gValue);}),
-                    Text(" × ", style: TextStyle(fontSize: 24, color: Colors.grey)), 
+                    Text(" × ", style: TextStyle(fontSize: 24, color: Colors.black)), 
                     // buildMathInput(gController, "g"),
-                    Text(gValue.toString(), style: TextStyle(fontSize: 24, color: Colors.grey)),
-                    Text(" × ", style: TextStyle(fontSize: 24, color: Colors.grey)), 
+                    Text(gValue.toString(), style: TextStyle(fontSize: 24, color: Colors.black)),
+                    Text(" × ", style: TextStyle(fontSize: 24, color: Colors.black)), 
                     buildMathInput(hController, "h", (val) {_calculate(gValue);}),
-                    Text(" = ", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey)),
-                    Text("${result.toStringAsFixed(2)} Па", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    Text(" = ", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
+                    Text("${result.toStringAsFixed(2)} Па", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
                   ],
                 ),
               ),  
@@ -81,28 +85,29 @@ class _HidrostaticPressureState extends State<HidrostaticPressure> {
       ),
   
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.grey,
+        backgroundColor: Colors.lightBlueAccent,
         // Пример для кнопки "Сохранить"
         onPressed: () async { // Делаем обработчик асинхронным
           
-          // 1. Создаем репозиторий
           final CalculationRepository repository = LocalDbRepository();
 
 
-          // 2. Создаем объект с тестовыми данными
           final newCalculation = Calculation(
-            title: 'Расчет "$formulaName"',
+            title: 'Рассчёт "$formulaName"',
+            formulaId: "hidrostatic_pressure",
             result: result,
-            createdAt: DateTime.now().toIso8601String(), // Текущая дата и время
+            createdAt: DateTime.now().toUtc().toIso8601String(), // Текущая дата и время
+            objectId: 1,
           );
 
-          // 3. Вызываем метод для сохранения
           await repository.createCalculation(newCalculation);
           
-          // 4. Показываем сообщение, что все получилось
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Расчет сохранен!'))
-          );
+          if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Рассчёт сохранён!'))
+              );
+
+            }
         },
         child: Icon(
           Icons.save,
@@ -110,6 +115,7 @@ class _HidrostaticPressureState extends State<HidrostaticPressure> {
           semanticLabel: "Сохранить результат",
         )
         ),
+    )
     );
   }
 
@@ -132,13 +138,13 @@ class _HidrostaticPressureState extends State<HidrostaticPressure> {
         controller: controller,
         keyboardType: TextInputType.numberWithOptions(decimal: true), // чтобы открывалась клава только для чисел
         inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d*')),
+          FilteringTextInputFormatter.allow(RegExp(r'^\d*[.,]?\d*')), //TODO: конец строки
         ],
         textAlign: TextAlign.center,
         style: TextStyle(fontSize: 22, color: Colors.blueAccent, fontWeight: FontWeight.bold),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.grey.withOpacity(0.05)),
+          hintStyle: TextStyle(color: Colors.grey[500]),
           border: UnderlineInputBorder(), // полоска внизу
           isDense: true, // лишние отступы
           contentPadding: EdgeInsets.symmetric(vertical: 5),

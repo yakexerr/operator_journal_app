@@ -62,8 +62,8 @@ class LocalDbRepository implements CalculationRepository{
   }
 
   @override
-  Future<void> createReport(String title) async {
-    await DBProvider.createReport(title);
+  Future<void> createReport(String title, String description) async {
+    await DBProvider.createReport(title, description);
   }
 
   @override
@@ -99,5 +99,23 @@ class LocalDbRepository implements CalculationRepository{
   @override
   Future<void> changeReportStatusToGenerated(List<int> reportIds) async {
     return await DBProvider.changeReportStatusToGenerated(reportIds);
+  }
+
+  @override
+  Future<List<Report>> getHomeReports() async {
+    return await DBProvider.getHomeReports();
+  }
+
+  @override
+  Future<List<Calculation>> findFreshCalculations({
+    required int objectId, 
+    required List<String> requiredFormulaIds, 
+    required int currentReportId
+  }) {
+    return DBProvider.findFreshCalculations(
+      objectId: objectId, 
+      requiredFormulaIds: requiredFormulaIds, 
+      currentReportId: currentReportId
+    );
   }
 }
