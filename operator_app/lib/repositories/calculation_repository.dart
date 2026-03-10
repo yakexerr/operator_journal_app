@@ -1,5 +1,7 @@
 import 'package:operator_app/models/calculation_model.dart';
+import 'package:operator_app/models/equipment_object_model.dart';
 import 'package:operator_app/models/report_model.dart';
+import 'package:operator_app/models/user.dart';
 
 
 abstract class CalculationRepository {
@@ -24,8 +26,7 @@ abstract class CalculationRepository {
   // -------------------------- ОТЧЁТЫ
   Future<void> deleteReport(int id);
   Future<void> deleteReports(List<int> ids);
-  Future<void> createReport(String title, String description);
-  Future<List<Calculation>> getCalculationsByReportId(int reportId);
+  Future<void> createReport(int taskId, String title, String description, int objectId);  Future<List<Calculation>> getCalculationsByReportId(int reportId);
   Future<void> deleteCalculationFromReport(int calculationId);
   Future<void> deleteCalculationFromReportAsList(List<int> calculationIds);
   Future<List<Report>> getReportsByStatus(String status);
@@ -36,5 +37,7 @@ abstract class CalculationRepository {
   Future<void> changeReportStatusToGenerated(List<int> reportIds);
 
   Future<List<Calculation>> findFreshCalculations({required int objectId, required List<String> requiredFormulaIds, required int currentReportId});
+  Future<void> saveObjects(List<EquipmentObject> objects);
+  Future<User> getUserById(int id);
 
 }

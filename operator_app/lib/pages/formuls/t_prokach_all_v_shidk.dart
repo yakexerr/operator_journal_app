@@ -3,14 +3,14 @@ import 'package:operator_app/widgets/base_calculation_page.dart';
 import 'package:operator_app/widgets/math_input_field.dart';
 import 'package:operator_app/widgets/pop_score.dart';
 
-class UniversalGasFormula extends StatefulWidget {
-  const UniversalGasFormula({super.key});
+class TProkachAllVSkash extends StatefulWidget {
+  const TProkachAllVSkash({super.key});
 
   @override
-  State<UniversalGasFormula> createState() => _UniversalGasFormulaState();
+  State<TProkachAllVSkash> createState() => _TProkachAllVSkashState();
 }
 
-class _UniversalGasFormulaState extends State<UniversalGasFormula> {
+class _TProkachAllVSkashState extends State<TProkachAllVSkash> {
   final _val1Controller = TextEditingController();
   final _val2Controller = TextEditingController();
   String _result = "0";
@@ -19,7 +19,7 @@ class _UniversalGasFormulaState extends State<UniversalGasFormula> {
     double v1 = double.tryParse(_val1Controller.text) ?? 0;
     double v2 = double.tryParse(_val2Controller.text) ?? 0;
     setState(() {
-      _result = (v1 * v2 * 8.32).toStringAsFixed(2);
+      _result = (v1 / v2).toStringAsFixed(2);
     });
   }
 
@@ -28,22 +28,22 @@ class _UniversalGasFormulaState extends State<UniversalGasFormula> {
     return FormulaPopScope(
       controllers: [_val1Controller, _val2Controller], 
       child: BaseCalculationPage(
-        title: "Универсальная газовая формула (Pv)",
-        formulaId: "universal_gas_formula",
-        formulaName: "Расчет ун. газовой формулы (Pv)",
+        title: "Время прокачивания всего объёма скважины объёма (t(цикл))",
+        formulaId: "t_prokach_all_v_shidk",
+        formulaName: "Расчет времени прокачивания всего объёма скважины объёма (t(цикл))",
         result: _result,
-        unit: "Дж/(моль·К)",
+        unit: "мин",
         onCalculate: _calculate,
         inputs: [
           MathInputField(
             controller: _val1Controller,
-            label: "Количество веществ",
-            unit: "моль",
+            label: "Объём скважины с инструментом (V(с инст))",
+            unit: "м³",
           ),
           MathInputField(
             controller: _val2Controller,
-            label: "Абсолютная температура",
-            unit: "К",
+            label: "Литраж буровых насосов (Q)",
+            unit: "м³/мин",
           ),
         ],
       )

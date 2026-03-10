@@ -32,6 +32,7 @@ class _PumpEfficiencyState extends State<PumpEfficiency> {
         formulaId: "pump_efficiency",
         formulaName: "Расчет эффективности",
         result: _result,
+        unit: "%",
         onCalculate: _calculate,
         inputs: [
           MathInputField(

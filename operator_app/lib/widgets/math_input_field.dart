@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class MathInputField extends StatelessWidget {
   final TextEditingController controller;
@@ -23,6 +24,14 @@ class MathInputField extends StatelessWidget {
       child: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+          TextInputFormatter.withFunction((oldValue, newValue) {
+            return newValue.copyWith(
+              text: newValue.text.replaceAll(',', '.'),
+            );
+          }),
+        ],
         style: const TextStyle(color: Colors.black87),
         decoration: InputDecoration(
           labelText: label,

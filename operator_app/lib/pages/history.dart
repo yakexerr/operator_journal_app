@@ -18,6 +18,23 @@ class History extends StatefulWidget {
 
 class _HistoryState extends State<History> {
 
+  // словарик для обозначений
+  final Map<String, String> formulaUnits = {
+    'pump_efficiency': '%',
+    'hidrostatic_pressure': 'Па',
+    'universal_gas_formula': 'Дж/(моль·К)',
+    'v_obsash_stvola' : 'м³',
+    'v_otkr_stvola' : 'м³',
+    'v_skv_bez_instr' : 'м³',
+    'v_skv_s_instr' : 'м³',
+    'v_zatruba' : 'м³',
+    't_prok_trub_v' : 'мин',
+    't_vim_zatrub_protsr' : 'мин',
+    't_prokach_all_v_shidk' : 'мин',
+    'v_v_instrum' : 'м³',
+    'v_metalla' : 'м³',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -169,6 +186,9 @@ class _HistoryState extends State<History> {
                                 bool showHeader = false;
                                 DateTime currentDay = DateTime.parse(calc.createdAt).toLocal();
 
+                                // для единиц измерения
+                                final String unit = formulaUnits[calc.formulaId] ?? "";
+
                                 if (index == 0) {
                                   showHeader = true;
                                 } else {
@@ -225,7 +245,7 @@ class _HistoryState extends State<History> {
                                         child: ListTile(
                                           title: Text(calc.title),
                                           // Добавим время замера
-                                          subtitle: Text("Результат: ${calc.result} | ${calc.createdAt.substring(11, 16)}"),
+                                          subtitle: Text("Результат: ${calc.result} $unit | ${DateTime.parse(calc.createdAt).toLocal().hour}:${DateTime.parse(calc.createdAt).toLocal().minute.toString().padLeft(2, '0')}"),
                                           onLongPress: () {
                                             if (!_isSelectionMode) {
                                               setState(() {

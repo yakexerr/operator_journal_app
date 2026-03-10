@@ -1,5 +1,7 @@
 import 'package:operator_app/models/calculation_model.dart';
+import 'package:operator_app/models/equipment_object_model.dart';
 import 'package:operator_app/models/report_model.dart';
+import 'package:operator_app/models/user.dart';
 import 'package:operator_app/utils/db_provider.dart';
 import 'calculation_repository.dart';
 
@@ -62,8 +64,9 @@ class LocalDbRepository implements CalculationRepository{
   }
 
   @override
-  Future<void> createReport(String title, String description) async {
-    await DBProvider.createReport(title, description);
+  Future<void> createReport(int taskId, String title, String description, int objectId) async {
+    // Просто прокидываем вызов дальше в DBProvider
+    await DBProvider.createReport(taskId, title, description, objectId);
   }
 
   @override
@@ -117,5 +120,16 @@ class LocalDbRepository implements CalculationRepository{
       requiredFormulaIds: requiredFormulaIds, 
       currentReportId: currentReportId
     );
+  }
+
+  @override
+  Future<void> saveObjects(List<EquipmentObject> objects) async {
+    // Просто перенаправляем вызов в DBProvider
+    await DBProvider.saveObjects(objects);
+  }
+
+  @override
+  Future<User> getUserById(int id) async {
+    return await DBProvider.getUserById(id);
   }
 }

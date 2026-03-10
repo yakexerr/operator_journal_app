@@ -9,6 +9,7 @@ class BaseCalculationPage extends StatefulWidget {
   final List<Widget> inputs;
   final VoidCallback onCalculate;
   final String result;
+  final String unit;
   final String formulaName;
 
   const BaseCalculationPage({
@@ -18,6 +19,7 @@ class BaseCalculationPage extends StatefulWidget {
     required this.inputs,
     required this.onCalculate,
     required this.result,
+    required this.unit,
     required this.formulaName,
   });
 
@@ -36,13 +38,22 @@ class _BaseCalculationPageState extends State<BaseCalculationPage> {
       return;
     }
 
+    /*
+    Достаем ID отчета, если мы пришли из страницы Задачи
+    Если пришли просто из вкладки "Формулы", тут будет null
+     */
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final int? reportIdFromArgs = args?['reportId'];
+    final int? objectIdFromArgs = args?['objectId'];
+
     final calc = Calculation(
-    title: widget.formulaName,
-    result: double.tryParse(widget.result) ?? 0,
-    createdAt: DateTime.now().toUtc().toIso8601String(), // Сразу UTC сделаем
-    objectId: 1, // Пока заглушка
-    formulaId: widget.formulaId, // ПЕРЕДАЕМ ИЗ ВИДЖЕТА
-  );
+      title: widget.formulaName,
+      result: double.tryParse(widget.result) ?? 0,
+      createdAt: DateTime.now().toUtc().toIso8601String(), // Сразу UTC сделаем
+      objectId: objectIdFromArgs?? 1,
+      formulaId: widget.formulaId, // ПЕРЕДАЕМ ИЗ ВИДЖЕТА
+      reportId: reportIdFromArgs,
+    );
 
     await repository.createCalculation(calc);
     if (mounted) {
@@ -79,8 +90,13 @@ class _BaseCalculationPageState extends State<BaseCalculationPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("РЕЗУЛЬТАТ:", style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(widget.result, style: const TextStyle(fontSize: 20, color: Colors.blue)),
+                  const Text(
+                    "РЕЗУЛЬТАТ:", 
+                    style: TextStyle(fontWeight: FontWeight.bold)
+                  ),
+                  Text(
+                    "${widget.result} ${widget.unit}", 
+                    style: const TextStyle(fontSize: 20, color: Colors.blue)),
                 ],
               ),
             ),

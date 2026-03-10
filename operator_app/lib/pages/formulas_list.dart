@@ -20,7 +20,6 @@ class Formula {
 
 
 class _FormulasListState extends State<FormulasList> {
-
   final List<Formula> formulaList = [
     Formula(
       title:'Рассчёт эффективности насоса',
@@ -36,6 +35,55 @@ class _FormulasListState extends State<FormulasList> {
     Formula(
       title: 'Универсальная газовая формула',
       routeName: '/universal_gas_formula', 
+      ),
+
+    Formula(
+      title: 'Объём обсаженного ствола скважины',
+      routeName: '/v_obsash_stvola', 
+      ),
+
+    Formula(
+      title: 'Объём открытого ствола скважины',
+      routeName: '/v_otkr_stvola', 
+      ),
+
+    Formula(
+      title: 'Объём скважины без инструмента',
+      routeName: '/v_skv_bez_instr', 
+      ),
+
+    Formula(
+      title: 'Объём скважины с инструментом',
+      routeName: '/v_skv_s_instr', 
+      ),
+
+    Formula(
+      title: 'Объём затруба',
+      routeName: '/v_zatruba', 
+      ),
+
+    Formula(
+      title: 'Время прокачивания трубного объёма',
+      routeName: '/t_prok_trub_v', 
+      ),
+
+    Formula(
+      title: 'Время прокачивания всего объёма скважины объёма',
+      routeName: '/t_prokach_all_v_shidk', 
+      ),
+
+    Formula(
+      title: 'Время вымыва затрубного пространства',
+      routeName: '/t_vim_zatrub_protsr', 
+      ),
+
+    Formula(
+      title: 'Объём в инструменте (V инстр)',
+      routeName: '/v_v_instrum', 
+      ),
+    Formula(
+      title: 'Объём металла (Vмет)',
+      routeName: '/v_metalla', 
       ),
   ];
 

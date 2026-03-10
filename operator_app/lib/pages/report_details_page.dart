@@ -20,6 +20,42 @@ class ReportDetailsPage extends StatefulWidget {
 }
 
 class _ReportDetailsPageState extends State<ReportDetailsPage> {
+  // словарик для праильного отображения задач
+  final Map<String, String> formulaNames = {
+    'pump_efficiency': 'Эффективность насоса',
+    'hidrostatic_pressure': 'Гидростатическое давление столба жидкости',
+    'universal_gas_formula': 'универсальное газовое значение',
+    'v_obsash_stvola' : 'Объём обсаженного ствола скважины',
+    'v_otkr_stvola' : 'Объём открытого ствола скважины',
+    'v_skv_bez_instr' : 'Объём скважины без инструмента',
+    'v_skv_s_instr' : 'Объём скважины с инструментом',
+    'v_zatruba' : 'Объём затруба',
+    't_prok_trub_v' : 'Время прокачивания трубного объёма',
+    't_vim_zatrub_protsr' : 'Время вымыва затрубного пространства',
+    't_prokach_all_v_shidk' : 'Время прокачивания всего объёма скважины',
+    'v_v_instrum' : 'Объём в инструменте',
+    'v_metalla' : 'Объём металла',
+  };
+
+
+  // для перехода напрямую к формуле
+  final Map<String, String> formulaRoutes = {
+    'pump_efficiency': '/pump_efficiency',
+    'hidrostatic_pressure': '/hidrostatic_pressure',
+    'universal_gas_formula': '/universal_gas_formula',
+    'v_obsash_stvola' : '/v_obsash_stvola',
+    'v_otkr_stvola' : '/v_otkr_stvola',
+    'v_skv_bez_instr' : '/v_skv_bez_instr',
+    'v_skv_s_instr' : '/v_skv_s_instr',
+    'v_zatruba' : '/v_zatruba',
+    't_prok_trub_v' : '/t_prok_trub_v',
+    't_vim_zatrub_protsr' : '/t_vim_zatrub_protsr',
+    't_prokach_all_v_shidk' : '/t_prokach_all_v_shidk',
+    'v_v_instrum' : '/v_v_instrum',
+    'v_metalla' : '/v_metalla',
+  };
+
+
   bool _isLoading = true; // флаг, который говорит, идет ли загрузка
   String? _error; // переменная для хранения текста ошибки
   List<Calculation> _calculations = []; // здесь будет лежать готовый список
@@ -41,7 +77,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
     List<String> requiredIds = widget.report.description.split(', '); 
 
     final freshCalcs = await repository.findFreshCalculations(
-      objectId: 1, // Твой захардкоженный ID объекта
+      objectId: widget.report.objectId,
       requiredFormulaIds: requiredIds,
       currentReportId: widget.report.id!, // ПЕРЕДАЕМ ID ТЕКУЩЕГО ОТЧЕТА
     );
@@ -123,10 +159,12 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   List<String> plannedIds = widget.report.description
   .split(',').map((e) => e.trim()).toList();
 
+  //
+  // List<String> ids = widget.report.description.split(',').map((e) => e.trim()).toList();
 
   return Column(
     children: [
-      // 1. БЛОК ТРЕБОВАНИЙ (показывается один раз наверху)
+      // БЛОК ТРЕБОВАНИЙ (показывается один раз наверху)
       Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16.0),
@@ -142,13 +180,14 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
               style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 12),
             ),
             const SizedBox(height: 8),
-            Text(
-              // Проверяем, есть ли описание, если нет - пишем "Не указаны"
-              (widget.report.description.isNotEmpty)
-                  ? widget.report.description
-                  : "Инструкции к выполнению не указаны",
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-            ),
+            // Text(
+            //   // Проверяем, есть ли описание, если нет - пишем "Не указаны"
+            //   (widget.report.description.isNotEmpty)
+            //       ? ids.map((id) => formulaNames[id] ?? id).join(', ')
+            //       : "Инструкции к выполнению не указаны",
+            //   style: const TextStyle(fontSize: 14, color: Colors.black87),
+            // ),
+            _buildRequirementsLinks(),
           ],
         ),
       ),
@@ -259,43 +298,54 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   
 
   Future<void> _processReportSending({String? extraComment}) async {
-    // сначала проверяем, есть ли расчеты
-    if (_calculations.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Ошибка: Нельзя отправить задачу без единого расчёта!"),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return; // прерываем выполнение
-    }
-    
+  try {
     final calculationsForReport = await repository.getCalculationsByReportId(widget.report.id!);
+    
     final Map<String, dynamic> reportData = {
+      'task_id': widget.report.taskId,
       'report_id': widget.report.id,
-      'comment': extraComment ?? "Без комментариев",
       'report_title': widget.report.title,
-      'created_at': DateTime.now().toUtc().toIso8601String(), // стандарт ISO - (год-месяц-день), иначе ошибка
-      'calculations': calculationsForReport.map((calc) {
-        return calc.toMap();
-      }).toList(),
+      'objectId': widget.report.objectId,
+      'comment': extraComment ?? "По плану",
+      'created_at': DateTime.now().toUtc().toIso8601String(),
+      'calculations': calculationsForReport.map((calc) => calc.toMap()).toList(),
     };
+
     String jsonString = jsonEncode(reportData);
 
-
     final ApiRepository api = HttpApiRepository();
+    
+    // 1. Пытаемся отправить
     await api.sendReport(jsonString);
+    print("--- [DEBUG] 1. API запрос завершен успешно ---");
+
+    // 2. Меняем статус в базе
     await repository.changeReportStatusToSend([widget.report.id!]);
+    print("--- [DEBUG] 2. Статус в БД изменен на 'send' ---");
 
-    // 
-
-    if(mounted) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Отчёт успешно отправлен!"))
+        const SnackBar(content: Text("Отчёт успешно отправлен!"), backgroundColor: Colors.green),
+      );
+      // 3. Закрываем саму страницу деталей
+      print("--- [DEBUG] 3. Вызываю Navigator.pop для закрытия страницы ---");
+      Navigator.pop(context, true); 
+    }
+
+  } catch (e) {
+    print("--- [DEBUG] ОШИБКА ПРИ ОТПРАВКЕ: $e ---");
+    
+    // ЕСЛИ ОШИБКА (например, сервер упал ПОСЛЕ того как мы начали слать)
+    await repository.changeReportStatusToGenerated([widget.report.id!]);
+    
+    if (mounted) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Ошибка сети. Сохранено локально."), backgroundColor: Colors.orange),
       );
       Navigator.pop(context, true);
     }
   }
+}
 
   void _showSendConfirmationDialog() {
     showDialog(
@@ -314,7 +364,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
               child: const Text("Да"),
               onPressed: () {
-                Navigator.of(context).pop(); 
+                Navigator.pop(context); 
                 _processReportSending(); 
               },
             ),
@@ -427,6 +477,44 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRequirementsLinks() {
+    List<String> ids = widget.report.description.split(',').map((e) => e.trim()).toList();
+
+    return Wrap(
+      spacing: 8.0,
+      runSpacing: 4.0,
+      children: ids.map((id) {
+        final String label = formulaNames[id] ?? id;
+        final String? route = formulaRoutes[id];
+
+        return ActionChip(
+          avatar: Icon(Icons.calculate_outlined, size: 16, color: Colors.blue[700]),
+          label: Text(label, style: const TextStyle(color: Colors.blue)),
+          backgroundColor: Colors.blue[50],
+          onPressed: route == null 
+            ? null 
+            : () async {
+                // ПЕРЕХОДИМ К ФОРМУЛЕ
+                // передаем ID отчета через arguments
+                await Navigator.pushNamed(
+                  context, 
+                  route, 
+                  arguments: {
+                    'reportId': widget.report.id,
+                    'objectId': widget.report.objectId,
+                  },
+                );
+                
+                // когда оператор вернется назад (нажмет кнопку "Назад"),
+                // мы должны обновить список расчетов в текущем отчете,
+                // чтобы новый расчет мгновенно появился в списке.
+                _loadCalculations(); 
+              },
+        );
+      }).toList(),
     );
   }
 
