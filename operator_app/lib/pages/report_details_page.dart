@@ -74,16 +74,38 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   void _checkAutoFill() async {
     if (widget.report.description.isEmpty) return;
     
-    List<String> requiredIds = widget.report.description.split(', '); 
+    List<String> plannedIds = widget.report.description.split(',').map((e) => e.trim()).toList();
+    
+    // смотрим, что уже ЕСТЬ в отчете
+    List<String> alreadyPerformedIds = _calculations.map((c) => c.formulaId).toList();
 
-    final freshCalcs = await repository.findFreshCalculations(
+    // считаем, чего именно НЕ ХВАТАЕТ
+    List<String> stillNeededIds = List.from(plannedIds);
+    for (var id in alreadyPerformedIds) {
+      stillNeededIds.remove(id); // удаляем уже сделанные из списка нужных
+    }
+
+    if (stillNeededIds.isEmpty) return; // всё уже сделано
+
+    // запрашиваем из истории все свежие замеры
+    final freshCalcsFromDb = await repository.findFreshCalculations(
       objectId: widget.report.objectId,
-      requiredFormulaIds: requiredIds,
-      currentReportId: widget.report.id!, // ПЕРЕДАЕМ ID ТЕКУЩЕГО ОТЧЕТА
+      requiredFormulaIds: plannedIds,
+      currentReportId: widget.report.id!,
     );
 
-    if (freshCalcs.isNotEmpty && mounted) {
-      _showAutoFillDialog(freshCalcs);
+    List<Calculation> calcsToSuggest = [];
+    List<String> tempPlan = List.from(stillNeededIds);
+
+    for (var calc in freshCalcsFromDb) {
+      if (tempPlan.contains(calc.formulaId)) {
+        calcsToSuggest.add(calc);
+        tempPlan.remove(calc.formulaId); // больше одного замера этого типа не предлагаем
+      }
+    }
+
+    if (calcsToSuggest.isNotEmpty && mounted) {
+      _showAutoFillDialog(calcsToSuggest);
     }
   }
 
@@ -122,7 +144,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                 });
               }
             )
-          : MyAppBar(title: "Отчёт '${widget.report.title}'"),
+          : MyAppBar(title: 'Задача "${widget.report.title}"'),
       
       body: _buildBody(),
 
@@ -156,15 +178,22 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   // для того чтобы подсвечивать лишнее в задаче
   // trim лишние пробелы по бокам отстринает
-  List<String> plannedIds = widget.report.description
-  .split(',').map((e) => e.trim()).toList();
+  List<String> plannedIds = widget.report.description.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
 
-  //
-  // List<String> ids = widget.report.description.split(',').map((e) => e.trim()).toList();
+  List<bool> isExtraMap = List.generate(_calculations.length, (index) => true);
+  List<String> planRemaining = List.from(plannedIds);
+
+  for (int i = 0; i < _calculations.length; i++) {
+    String fid = _calculations[i].formulaId;
+    if (planRemaining.contains(fid)) {
+      isExtraMap[i] = false; // Этот расчет законный
+      planRemaining.remove(fid); // Вычеркиваем один экземпляр из плана
+    }
+  }
+
 
   return Column(
     children: [
-      // БЛОК ТРЕБОВАНИЙ (показывается один раз наверху)
       Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16.0),
@@ -194,7 +223,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
       Expanded(
         child: _calculations.isEmpty
-            ? const Center(child: Text("В отчёте пока нет формул"))
+            ? const Center(child: Text("В задаче пока нет формул"))
             : ListView.builder(
                 itemCount: _calculations.length,
                 itemBuilder: (context, index) {
@@ -202,7 +231,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                   final isSelected = _selectedIds.contains(calc.id);
 
                   // продолжения для подсвечивания лишнего
-                  bool isExtra = !plannedIds.contains(calc.formulaId);
+                  bool isExtra = isExtraMap[index]; 
                   
                   return Dismissible(
                     key: ValueKey(calc.id),
@@ -278,7 +307,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
         children: [
           InkWell(
             onTap: () async {
-              // просто тут прописать логику собирания в json (вынеси если что)
               
               _handleSendClick();
             },
@@ -286,7 +314,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.save, color: Colors.white),
-                Text("Отправить отчёт", style: TextStyle(color: Colors.white)),
+                Text("Отправить задачу", style: TextStyle(color: Colors.white)),
               ],
             ),
           ),
@@ -315,19 +343,16 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
     final ApiRepository api = HttpApiRepository();
     
-    // 1. Пытаемся отправить
     await api.sendReport(jsonString);
     print("--- [DEBUG] 1. API запрос завершен успешно ---");
 
-    // 2. Меняем статус в базе
     await repository.changeReportStatusToSend([widget.report.id!]);
     print("--- [DEBUG] 2. Статус в БД изменен на 'send' ---");
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Отчёт успешно отправлен!"), backgroundColor: Colors.green),
+        const SnackBar(content: Text("Задача успешно отправлена!"), backgroundColor: Colors.green),
       );
-      // 3. Закрываем саму страницу деталей
       print("--- [DEBUG] 3. Вызываю Navigator.pop для закрытия страницы ---");
       Navigator.pop(context, true); 
     }
@@ -335,7 +360,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
   } catch (e) {
     print("--- [DEBUG] ОШИБКА ПРИ ОТПРАВКЕ: $e ---");
     
-    // ЕСЛИ ОШИБКА (например, сервер упал ПОСЛЕ того как мы начали слать)
     await repository.changeReportStatusToGenerated([widget.report.id!]);
     
     if (mounted) {
@@ -353,7 +377,7 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Подтверждение отправки"),
-          content: Text("Вы уверены, что хотите отправить отчёт '${widget.report.title}'? "
+          content: Text("Вы уверены, что хотите отправить задачу '${widget.report.title}'? "
               "После отправки он будет доступен диспетчеру на сайте и его нельзя будет изменить."),
           actions: <Widget>[
             TextButton(
@@ -422,15 +446,86 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
 
   // для лишних полей
   void _handleSendClick() {
-    List<String> planndeIds = widget.report.description
-    .split(',').map((e) => e.trim()).toList();
-    bool hasExtra = _calculations.any((calc) => !planndeIds.contains(calc.formulaId));
+    List<String> plannedIds = widget.report.description
+      .split(',')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
 
-    if (hasExtra) {
+    // расчеты, которые сейчас в отчете
+    List<Calculation> performedCalcs = List.from(_calculations);
+
+    List<String> missingIds = [];
+    List<Calculation> extraCalcs = [];
+
+    // создаем копию плана для "вычеркивания"
+    List<String> planToCheck = List.from(plannedIds);
+
+    // проверяем каждый расчет в отчете
+    for (var calc in performedCalcs) {
+      if (planToCheck.contains(calc.formulaId)) {
+        // если расчет есть в плане — "вычеркиваем" его из плана 
+        planToCheck.remove(calc.formulaId);
+      } else {
+        // если в плане такого ID больше нет (или не было) — значит расчет лишний (дубликат или левый)
+        extraCalcs.add(calc);
+      }
+    }
+
+    // то, что осталось в planToCheck — это то, что забыли сделать
+    missingIds = planToCheck;
+
+    if (missingIds.isNotEmpty) {
+      // не хватает замеров
+      _showMissingDataWarning(missingIds, extraCalcs.isNotEmpty);
+    } else if (extraCalcs.isNotEmpty) {
+      // всего хватает, но есть лишние (включая дубликаты!)
       _showExtraDataWarning();
     } else {
+      // план выполнен идеально 1-в-1
       _showSendConfirmationDialog();
     }
+  }
+
+  void _showMissingDataWarning(List<String> missingIds, bool hasExtra) {
+    // Превращаем ID в красивые названия из твоего словаря
+    String missingNames = missingIds.map((id) => formulaNames[id] ?? id).join(', ');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red),
+            SizedBox(width: 10),
+            Text("Внимание: План не выполнен"),
+          ],
+        ),
+        content: Text(
+          "Вы не выполнили обязательные замеры:\n\n$missingNames\n\n"
+          "Отправить отчет в неполном виде?"
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text("ВЕРНУТЬСЯ К РАБОТЕ")
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Если есть еще и лишние данные — идем в диалог комментария
+              // Если нет — просто шлем как есть
+              if (hasExtra) {
+                _showExtraDataWarning();
+              } else {
+                _showSendConfirmationDialog();
+              }
+            },
+            child: const Text("ОТПРАВИТЬ ВСЁ РАВНО", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showExtraDataWarning() {
@@ -497,8 +592,6 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           onPressed: route == null 
             ? null 
             : () async {
-                // ПЕРЕХОДИМ К ФОРМУЛЕ
-                // передаем ID отчета через arguments
                 await Navigator.pushNamed(
                   context, 
                   route, 

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:operator_app/models/calculation_model.dart';
 import 'package:operator_app/models/report_model.dart';
@@ -8,6 +10,8 @@ import 'package:operator_app/widgets/my_app_bar.dart';
 import 'package:operator_app/widgets/my_bottom_bar.dart';
 import 'package:operator_app/repositories/calculation_repository.dart';
 import 'package:operator_app/widgets/selection_app_bar.dart';
+import 'package:operator_app/widgets/settings.dart';
+import 'package:http/http.dart' as http;
 
 class History extends StatefulWidget {
   const History({super.key});
@@ -56,20 +60,40 @@ class _HistoryState extends State<History> {
 
 
   void _loadCalcs() async {
-    setState(() {
-      _isLoading = true;
-    });
-    final calcs = await repository.getAllCalculations();
+    setState(() => _isLoading = true);
 
-    setState(() {
-      _allCalcs = calcs;
-      _filteredCalcs = calcs;
-      _isLoading = false;
-    });
+    try {
+      final user = await repository.getCurrentUser();
+      print("--- [DEBUG] Мой ID скважины: ${user?.objectId} ---"); 
+      
+      // Если юзер не залогинен или скважина не привязана - нечего запрашивать
+      if (user == null || user.objectId == 0) {
+        setState(() { _allCalcs = []; _filteredCalcs = []; _isLoading = false; });
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse("${Settings.url}/history-by-well/${user.objectId}"),
+        headers: await Settings.getHeaders(), 
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        final calcs = data.map((json) => Calculation.fromMap(json)).toList();
+
+        setState(() {
+          _allCalcs = calcs;
+          _filteredCalcs = calcs;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Ошибка сети: $e");
+      setState(() => _isLoading = false);
+    }
   }
 
-
-  // это панелька с отчётами в которые можно добавить формулы
+  // это панелька с задачами в которые можно добавить формулы
   // В _HistoryState
   void _showReportSelectionSheet(BuildContext context, Set<int> selectedIds) {
     showModalBottomSheet(

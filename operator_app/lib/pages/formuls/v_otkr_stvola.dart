@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:operator_app/widgets/base_calculation_page.dart';
 import 'package:operator_app/widgets/math_input_field.dart';
-import 'package:operator_app/widgets/pop_score.dart';
+// import 'package:operator_app/widgets/pop_score.dart';
 
 class VOtkrStvola extends StatefulWidget {
   const VOtkrStvola({super.key});
@@ -27,9 +27,8 @@ class _VOtkrStvolaState extends State<VOtkrStvola> {
 
   @override
   Widget build(BuildContext context) {
-    return FormulaPopScope(
+    return BaseCalculationPage(
       controllers: [_val1Controller, _val2Controller], 
-      child: BaseCalculationPage(
         title: "Объём открытого ствола скважины (Voт)",
         formulaId: "v_otkr_stvola",
         formulaName: "Расчет объёма открытого ствола скважины (Voт)",
@@ -53,7 +52,6 @@ class _VOtkrStvolaState extends State<VOtkrStvola> {
             icon: Icons.percent,
           ),
         ],
-      )
     );
   }
 }

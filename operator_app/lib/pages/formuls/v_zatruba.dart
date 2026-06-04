@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:operator_app/widgets/base_calculation_page.dart';
 import 'package:operator_app/widgets/math_input_field.dart';
-import 'package:operator_app/widgets/pop_score.dart';
+// import 'package:operator_app/widgets/pop_score.dart';
 
 class VZatruba extends StatefulWidget {
   const VZatruba({super.key});
@@ -25,9 +25,8 @@ class _VZatrubaState extends State<VZatruba> {
 
   @override
   Widget build(BuildContext context) {
-    return FormulaPopScope(
+    return BaseCalculationPage(
       controllers: [_val1Controller, _val2Controller], 
-      child: BaseCalculationPage(
         title: "Объём затруба (V(затр))",
         formulaId: "v_zatruba",
         formulaName: "Расчет объёма затруба (V(затр))",
@@ -46,7 +45,6 @@ class _VZatrubaState extends State<VZatruba> {
             unit: "м³",
           ),
         ],
-      )
     );
   }
 }

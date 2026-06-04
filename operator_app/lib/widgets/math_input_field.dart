@@ -30,6 +30,7 @@ class MathInputField extends StatelessWidget {
             return newValue.copyWith(
               text: newValue.text.replaceAll(',', '.'),
             );
+          
           }),
         ],
         style: const TextStyle(color: Colors.black87),

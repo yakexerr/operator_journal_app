@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:operator_app/widgets/base_calculation_page.dart';
 import 'package:operator_app/widgets/math_input_field.dart';
-import 'package:operator_app/widgets/pop_score.dart';
+// import 'package:operator_app/widgets/pop_score.dart';
 
 class VMetalla extends StatefulWidget {
   const VMetalla({super.key});
@@ -33,9 +33,8 @@ class _VMetallaState extends State<VMetalla> {
 
   @override
   Widget build(BuildContext context) {
-    return FormulaPopScope(
+    return BaseCalculationPage(
       controllers: [_val1Controller, _val2Controller], 
-      child: BaseCalculationPage(
         title: "Объём металла (V(мет))",
         formulaId: "v_metalla",
         formulaName: "Расчет объёма металла (V(мет))",
@@ -74,7 +73,6 @@ class _VMetallaState extends State<VMetalla> {
             unit: "м",
           ),
         ],
-      )
     );
   }
 }

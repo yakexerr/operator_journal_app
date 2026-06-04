@@ -32,12 +32,14 @@ abstract class CalculationRepository {
   Future<List<Report>> getReportsByStatus(String status);
   Future<List<Report>> getHomeReports();
   Future<void> changeReportStatusToDraft(List<int> reportIds);
-  // TODO: исправить на единичные id, так как списками отчёты не всегда получится перекидывать, 
   Future<void> changeReportStatusToSend(List<int> reportIds);
   Future<void> changeReportStatusToGenerated(List<int> reportIds);
 
   Future<List<Calculation>> findFreshCalculations({required int objectId, required List<String> requiredFormulaIds, required int currentReportId});
   Future<void> saveObjects(List<EquipmentObject> objects);
   Future<User> getUserById(int id);
+  Future<User?> getCurrentUser();
+  Future<void> logout();
+  Future<void> saveUser(User user);
 
 }

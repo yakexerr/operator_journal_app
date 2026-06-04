@@ -132,4 +132,19 @@ class LocalDbRepository implements CalculationRepository{
   Future<User> getUserById(int id) async {
     return await DBProvider.getUserById(id);
   }
+
+  @override
+  Future<User?> getCurrentUser() async {
+    return await DBProvider.getCurrentUser();
+  }
+
+  @override
+  Future<void> logout() async {
+    return await DBProvider.logout();
+  }
+
+  @override
+  Future<void> saveUser(User user) async {
+    await DBProvider.saveUser(user);
+  }
 }

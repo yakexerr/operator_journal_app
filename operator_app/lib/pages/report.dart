@@ -67,7 +67,7 @@ class _ReportState extends State<Report> {
                   _selectedIds.clear();
                 });
               })
-          : MyAppBar(title: 'Отчёт'),
+          : MyAppBar(title: 'Задача'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator()) // Ждем загрузку из БД
           : Column(
@@ -79,7 +79,7 @@ class _ReportState extends State<Report> {
                     controller: _searchController,
                     onChanged: _filterReports, // Фильтруем при каждом нажатии клавиши
                     decoration: const InputDecoration(
-                      labelText: 'Поиск отчетов',
+                      labelText: 'Поиск задач',
                       prefixIcon: Icon(Icons.search),
                       border: OutlineInputBorder(),
                     ),

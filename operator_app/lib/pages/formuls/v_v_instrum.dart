@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:operator_app/widgets/base_calculation_page.dart';
 import 'package:operator_app/widgets/math_input_field.dart';
-import 'package:operator_app/widgets/pop_score.dart';
+// import 'package:operator_app/widgets/pop_score.dart';
 
 class VVInstr extends StatefulWidget {
   const VVInstr({super.key});
@@ -29,9 +29,8 @@ class _VVInstrState extends State<VVInstr> {
 
   @override
   Widget build(BuildContext context) {
-    return FormulaPopScope(
+    return BaseCalculationPage(
       controllers: [_val1Controller, _val2Controller], 
-      child: BaseCalculationPage(
         title: "Объём в инструменте (V(инстр))",
         formulaId: "v_v_instrum",
         formulaName: "Расчет объёма в инструменте (V(инстр))",
@@ -60,7 +59,6 @@ class _VVInstrState extends State<VVInstr> {
             unit: "м",
           ),
         ],
-      )
     );
   }
 }

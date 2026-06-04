@@ -15,8 +15,8 @@ class Task {
     required this.createdAt,
   });
 
-    // Метод "toMap": превращает объект Calculation в Map.
-  // Нужно для сохранения в БД.
+    // Метод "toMap": превращает объект Calculation в Map
+  // Нужно для сохранения в БД
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -28,16 +28,23 @@ class Task {
     };
   }
 
-  // Метод "fromMap": превращает Map в объект Calculation.
-  // Нужно для чтения из БД.
+  // Метод "fromMap": превращает Map в объект Calculation
+  // Нужно для чтения из БД
   factory Task.fromMap(Map<String, dynamic> map) {
     return Task(
-      id: map['id'],
-      title: map['title'],
-      objectName: map['objectName'],
-      createdAt: map['created_at'] ?? DateTime.now().toIso8601String(),
-      objectId: map['objectId'] ?? 1,
-      description: map['description'],
+      // пытаемся взять taskId, если нет - id, если нет - 0
+      id: map['taskId'] ?? map['id'] ?? 0, 
+      
+      title: map['title'] ?? 'Без названия',
+      
+      // если названия объекта нет, пишем его ID
+      objectName: map['objectName'] ?? "Объект №${map['objectId']}", 
+      
+      // если даты нет, ставим текущую (в формате UTC, как просил препод)
+      createdAt: map['created_at'] ?? DateTime.now().toUtc().toIso8601String(),
+      
+      objectId: map['objectId'] ?? 0,
+      description: map['description'] ?? '',
     );
   }
 }

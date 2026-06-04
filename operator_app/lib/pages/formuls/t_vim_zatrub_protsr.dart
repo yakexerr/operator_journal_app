@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:operator_app/widgets/base_calculation_page.dart';
 import 'package:operator_app/widgets/math_input_field.dart';
-import 'package:operator_app/widgets/pop_score.dart';
+// import 'package:operator_app/widgets/pop_score.dart';
 
 class TVimZatrubProstr extends StatefulWidget {
   const TVimZatrubProstr({super.key});
@@ -25,9 +25,8 @@ class _TVimZatrubProstrState extends State<TVimZatrubProstr> {
 
   @override
   Widget build(BuildContext context) {
-    return FormulaPopScope(
+    return BaseCalculationPage(
       controllers: [_val1Controller, _val2Controller], 
-      child: BaseCalculationPage(
         title: "Время вымыва затрубного пространства (t(затр))",
         formulaId: "t_vim_zatrub_protsr",
         formulaName: "Расчет времени вымыва затрубного пространства (t(затр))",
@@ -46,7 +45,6 @@ class _TVimZatrubProstrState extends State<TVimZatrubProstr> {
             unit: "м³/мин",
           ),
         ],
-      )
     );
   }
 }

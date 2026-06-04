@@ -12,19 +12,22 @@ import 'package:operator_app/widgets/my_bottom_bar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'package:operator_app/widgets/settings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 class Home extends StatefulWidget {
   const Home({super.key});
 
   @override
   State<Home> createState() => _HomeState();
 }
-//final String url = 'http://192.168.1.10:3000/task';
+//final String url = 'https://${Settings.url}/task';
 
 class _HomeState extends State<Home> {
   final CalculationRepository repository = LocalDbRepository();
   List<Task> _tasks = [];
   late Future<List<model.Report>> _homeReportsFuture;
-
+  
   @override
   void initState() {
     super.initState();
@@ -42,25 +45,50 @@ class _HomeState extends State<Home> {
 
     // для сбора с сервера
   Future<void> _fetchTasksFromServer() async {
-    final String url = 'http://192.168.1.10:3000/task'; 
+    final String url = '${Settings.url}/task';
+
+    // Сначала достаем токен из памяти
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('jwt_token');
 
     try {
-      print("--- Пытаюсь загрузить задачи... ---");
-      final response = await http.get(Uri.parse(url));
-
-      print("--- Статус ответа: ${response.statusCode} ---");
-      
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token', // ПЕРЕДАЕМ ТОКЕН
+        }
+      );
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
-        print("--- Данные получены: $data ---");
         
+        // достаем из локальной БД все задачи (Reports), которые мы уже приняли
+        // нужны их айдишки
+        final localReports = await repository.getAllReports();
+        final acceptedTaskIds = localReports.map((r) => r.taskId).toSet();
+
+        final seenIds = <int>{};
+        final List<Task> uniqueAndNewTasks = [];
+
+        for (var json in data) {
+          final task = Task.fromMap(json);
+          print("--- [DEBUG] Пришла задача с сервера: ID ${task.id}, Title: ${task.title}");
+
+          bool alreadyInDb = acceptedTaskIds.contains(task.id);
+          print("--- [DEBUG] Она уже есть в локальной базе? $alreadyInDb");
+
+          if (!seenIds.contains(task.id) && !alreadyInDb) {
+              uniqueAndNewTasks.add(task);
+              print("--- [DEBUG] Задача добавлена в список на экране");
+          }
+        } 
+
         setState(() {
-          _tasks = data.map((json) => Task.fromMap(json)).toList();
+          _tasks = uniqueAndNewTasks;
         });
-        print("--- Список _tasks успешно обновлен! ---");
       }
     } catch (e) {
-      print('--- КРИТИЧЕСКАЯ ОШИБКА: $e ---');
+      print('Ошибка: $e');
     }
   }
 
@@ -74,7 +102,6 @@ class _HomeState extends State<Home> {
         ),
       body: Row(
         children: <Widget>[
-          // ЛЕВАЯ КОЛОНКА: ВЫПОЛНЕННО
           Expanded(
             child: Column(
               children: [
@@ -133,10 +160,8 @@ class _HomeState extends State<Home> {
             ),
           ),
 
-          // РАЗДЕЛИТЕЛЬ
           VerticalDivider(color: Colors.grey[300], thickness: 2, width: 1),
 
-          // ПРАВАЯ КОЛОНКА: ЗАДАЧИ (пока мокаю из памяти)
           Expanded(
             child: Column(
               children: [
@@ -178,85 +203,12 @@ class _HomeState extends State<Home> {
           if (index != 0) onBottomNavTaped(context, index);
         },
       ),
-      // floatingActionButton: SizedBox(
-      //   width: 70,
-      //   height: 70,
-      //   child: FloatingActionButton(
-      //     backgroundColor: const Color.fromARGB(255, 133, 212, 248),
-      //     onPressed: _showCreateTaskDialog,
-      //     child: const Icon(Icons.add_task, size: 30),
-      //   ),
-      // ),
+
     );
   }
 
-
-  // void _showCreateTaskDialog() {
-  //   final TextEditingController titleController = TextEditingController();
-  //   final TextEditingController objectNameController = TextEditingController();
-  //   final TextEditingController reqController = TextEditingController(); // для требований
-
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) {
-  //       return AlertDialog(
-  //         title: const Text("Имитация нового запроса"),
-  //         content: SingleChildScrollView( // чтобы клавиатура не перекрыла поля
-  //           child: Column(
-  //             mainAxisSize: MainAxisSize.min, // чтобы диалог был компактным
-  //             children: [
-  //               TextField(
-  //                 controller: titleController,
-  //                 decoration: const InputDecoration(labelText: "Что сделать (название)"),
-  //                 autofocus: true,
-  //               ),
-  //               TextField(
-  //                 controller: objectNameController,
-  //                 decoration: const InputDecoration(labelText: "Название объекта (скважины)"),
-  //               ),
-  //               TextField(
-  //                 controller: reqController,
-  //                 decoration: const InputDecoration(labelText: "Инструкция/Требования"),
-  //                 maxLines: 2, // чтобы было удобнее писать текст
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //         actions: [
-  //           TextButton(
-  //             child: const Text("Отмена"),
-  //             onPressed: () => Navigator.of(context).pop(),
-  //           ),
-  //           ElevatedButton(
-  //             child: const Text("Создать задачу"),
-  //             onPressed: () {
-  //               if (titleController.text.isNotEmpty) {
-  //                 // создаем новый объект Task (пока просто в память списка)
-  //                 final newTask = Task(
-  //                   id: DateTime.now().toUtc().millisecondsSinceEpoch, // временный ID
-  //                   title: titleController.text,
-  //                   objectName: objectNameController.text,
-  //                   objectId: 1, // пока захардкодил, или вытащу из БД позже
-  //                   description: reqController.text,
-  //                   createdAt: DateTime.now().toUtc().toIso8601String(),
-  //                 );
-
-  //                 setState(() {
-  //                   _tasks.add(newTask); // добавляем в твой локальный список на Home
-  //                 });
-
-  //                 Navigator.of(context).pop();
-  //               }
-  //             },
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
-
   Future<void> _syncObjects() async {
-    final url = Uri.parse('http://192.168.1.10:3000/objects');
+    final url = Uri.parse('${Settings.url}/objects');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -271,17 +223,22 @@ class _HomeState extends State<Home> {
     }
   }
 
-  // чё я написал
 
   void _acceptTask(Task task) async {
-    // 1. Создаем отчет локально (уже есть)
+    // создаем отчет локально
     await repository.createReport(task.id, task.title, task.description, task.objectId);
 
-    // 2. УВЕДОМЛЯЕМ СЕРВЕР (PATCH запрос)
+    // Сначала достаем токен из памяти
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('jwt_token');
+    // уведомляем patch запросом
     try {
       await http.patch(
-        Uri.parse('http://192.168.1.10:3000/task/${task.id}'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('${Settings.url}/task/${task.id}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({'status': 'in_progress'}), // Меняем статус на сервере
       );
       print("--- [HTTP] Статус задачи обновлен на 'in_progress' ---");
@@ -289,7 +246,6 @@ class _HomeState extends State<Home> {
       print("--- [HTTP] Ошибка уведомления сервера: $e ---");
     }
 
-    // 3. Твой код обновления списка (removeWhere и setState)
     setState(() {
       _tasks.removeWhere((t) => t.id == task.id);
     });
@@ -322,10 +278,13 @@ class _HomeState extends State<Home> {
       );
       final calcs = await repository.getCalculationsByReportId(report.id!);
       final Map<String, dynamic> reportData = {
+        'task_id': report.taskId, 
         'report_id': report.id,
         'report_title': report.title,
-        'created_at': DateTime.now().toUtc().toIso8601String(), // стандарт ISO - (год-месяц-день), иначе ошибка
-        'calculations': calcs.map((calc) {return calc.toMap();}).toList(),
+        'objectId': report.objectId,
+        'comment': "Повторная отправка", // можно так и оставить
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+        'calculations': calcs.map((calc) => calc.toMap()).toList(),
       };
       String jsonString = jsonEncode(reportData);
 

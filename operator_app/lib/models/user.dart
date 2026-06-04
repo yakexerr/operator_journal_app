@@ -5,13 +5,7 @@ class User {
   final String position;
   final String login;
   final String password;
-
-      // id 
-      // name ,
-      // lastname ,
-      // position ,
-      // login ,
-      // password 
+  final int objectId;
 
   User({
     required this.id,
@@ -20,6 +14,7 @@ class User {
     required this.position,
     required this.login,
     required this.password,
+    required this.objectId
   });
 
     // Метод "toMap": превращает объект Calculation в Map.
@@ -32,6 +27,7 @@ class User {
       'position': position,
       'login': login,
       'password': password,
+      'objectId': objectId
     };
   }
 
@@ -39,12 +35,13 @@ class User {
   // Нужно для чтения из БД.
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
-      id: map['id'],
-      name: map['name'],
-      lastname: map['lastname'],
-      position: map['position'],
-      login: map['login'],
-      password: map['password'],
+      id: map['id'] ?? 0,
+      name: map['name'] ?? '',
+      lastname: map['lastname'] ?? '',
+      position: map['position'] ?? '',
+      login: map['login'] ?? '',
+      password: map['password'] ?? '',
+      objectId: map['objectId'] ?? 0,
     );
   }
 }

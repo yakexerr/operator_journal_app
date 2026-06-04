@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:operator_app/widgets/base_calculation_page.dart';
 import 'package:operator_app/widgets/math_input_field.dart';
-import 'package:operator_app/widgets/pop_score.dart';
+// import 'package:operator_app/widgets/pop_score.dart';
 
 class PumpEfficiency extends StatefulWidget {
   const PumpEfficiency({super.key});
@@ -25,9 +25,8 @@ class _PumpEfficiencyState extends State<PumpEfficiency> {
 
   @override
   Widget build(BuildContext context) {
-    return FormulaPopScope(
+    return BaseCalculationPage(
       controllers: [_val1Controller, _val2Controller], 
-      child: BaseCalculationPage(
         title: "Эффективность насоса",
         formulaId: "pump_efficiency",
         formulaName: "Расчет эффективности",
@@ -46,7 +45,6 @@ class _PumpEfficiencyState extends State<PumpEfficiency> {
             icon: Icons.percent,
           ),
         ],
-      )
     );
   }
 }

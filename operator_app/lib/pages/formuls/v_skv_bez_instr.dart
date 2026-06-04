@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:operator_app/widgets/base_calculation_page.dart';
 import 'package:operator_app/widgets/math_input_field.dart';
-import 'package:operator_app/widgets/pop_score.dart';
+// import 'package:operator_app/widgets/pop_score.dart';
 
 class VSkvBezInstr extends StatefulWidget {
   const VSkvBezInstr({super.key});
@@ -25,9 +25,8 @@ class _VSkvBezInstrState extends State<VSkvBezInstr> {
 
   @override
   Widget build(BuildContext context) {
-    return FormulaPopScope(
+    return BaseCalculationPage(
       controllers: [_val1Controller, _val2Controller], 
-      child: BaseCalculationPage(
         title: "Объём скважины без инструмента (V(без инст))",
         formulaId: "v_skv_bez_instr",
         formulaName: "Расчет объёма скважины без инструмента (V(без инст))",
@@ -46,7 +45,6 @@ class _VSkvBezInstrState extends State<VSkvBezInstr> {
             unit: "м³",
           ),
         ],
-      )
     );
   }
 }

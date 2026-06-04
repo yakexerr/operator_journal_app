@@ -13,9 +13,11 @@ import 'package:operator_app/pages/formuls/v_skv_s_instr.dart';
 import 'package:operator_app/pages/formuls/v_v_instrum.dart';
 import 'package:operator_app/pages/formuls/v_zatruba.dart';
 import 'package:operator_app/pages/home.dart';
+import 'package:operator_app/pages/login.dart';
 import 'package:operator_app/pages/profile.dart';
 import 'package:operator_app/pages/history.dart';
 import 'package:operator_app/pages/report.dart';
+import 'package:operator_app/utils/db_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -24,12 +26,17 @@ import 'package:operator_app/pages/formuls/hidrostatic_pressure.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Обязательно для асинхронного main
   databaseFactory = databaseFactoryFfi;
+
+  final user = await DBProvider.getCurrentUser(); 
+  final bool isLogin = user != null;
+
   runApp(
     MaterialApp (
       debugShowCheckedModeBanner: false,
-      initialRoute: '/',
+      initialRoute: isLogin ? '/' : '/login',
       routes: {
         '/': (context) => Home(),
+        '/login': (context) => LoginPage(),
         '/formulas_list' : (context) => FormulasList(),
         '/profile' : (context) => Profile(),
         '/history': (context) => History(),

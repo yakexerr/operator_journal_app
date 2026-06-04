@@ -23,58 +23,58 @@ class _FormulasListState extends State<FormulasList> {
   final List<Formula> formulaList = [
     Formula(
       title:'Рассчёт эффективности насоса',
-      routeName: '/pump_efficiency', 
+      routeName: '/pump_efficiency', // t
       ),
 
 
     Formula(
       title: 'Гидростатическое давление столба жидкости',
-      routeName: '/hidrostatic_pressure', 
+      routeName: '/hidrostatic_pressure', //t
       ),
 
     Formula(
       title: 'Универсальная газовая формула',
-      routeName: '/universal_gas_formula', 
+      routeName: '/universal_gas_formula', //t
       ),
 
     Formula(
       title: 'Объём обсаженного ствола скважины',
-      routeName: '/v_obsash_stvola', 
+      routeName: '/v_obsash_stvola', //t
       ),
 
     Formula(
       title: 'Объём открытого ствола скважины',
-      routeName: '/v_otkr_stvola', 
+      routeName: '/v_otkr_stvola', //t
       ),
 
     Formula(
       title: 'Объём скважины без инструмента',
-      routeName: '/v_skv_bez_instr', 
+      routeName: '/v_skv_bez_instr', //t 
       ),
 
     Formula(
       title: 'Объём скважины с инструментом',
-      routeName: '/v_skv_s_instr', 
+      routeName: '/v_skv_s_instr', //t
       ),
 
     Formula(
       title: 'Объём затруба',
-      routeName: '/v_zatruba', 
+      routeName: '/v_zatruba', //t
       ),
 
     Formula(
       title: 'Время прокачивания трубного объёма',
-      routeName: '/t_prok_trub_v', 
+      routeName: '/t_prok_trub_v', //t
       ),
 
     Formula(
       title: 'Время прокачивания всего объёма скважины объёма',
-      routeName: '/t_prokach_all_v_shidk', 
+      routeName: '/t_prokach_all_v_shidk', //t
       ),
 
     Formula(
       title: 'Время вымыва затрубного пространства',
-      routeName: '/t_vim_zatrub_protsr', 
+      routeName: '/t_vim_zatrub_protsr', //t
       ),
 
     Formula(
@@ -97,7 +97,7 @@ class _FormulasListState extends State<FormulasList> {
   }
 
   @override
-  void dispose() // закрыл программу - почистил контроллер (зачем?)
+  void dispose() // закрыл программу - почистил контроллер
   {
     _searchController.dispose();
     super.dispose();

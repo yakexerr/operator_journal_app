@@ -4,17 +4,15 @@ class FormulaPopScope extends StatelessWidget {
   // список всех контроллеров на странице (их может быть несколько)
   final List<TextEditingController> controllers;
   final Widget child;
+  final bool isDirty;
 
   const FormulaPopScope({
     super.key,
     required this.controllers,
     required this.child,
+    required this.isDirty,
   });
 
-  // метод для проверки: заполнено ли хотя бы одно поле?
-  bool _hasAnyData() {
-    return controllers.any((controller) => controller.text.isNotEmpty);
-  }
 
   // диалог подтверждения
   Future<bool> _showExitDialog(BuildContext context) async {
@@ -41,7 +39,7 @@ class FormulaPopScope extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopScope(
       // canPop: true означает, что система выпустит пользователя сразу
-      canPop: !_hasAnyData(), 
+      canPop: controllers.every((c) => c.text.isEmpty) || !isDirty, 
       onPopInvokedWithResult: (didPop, result) async {
         //если didPop == true, значит мы уже вышли (поля были пустые)
         if (didPop) return;
