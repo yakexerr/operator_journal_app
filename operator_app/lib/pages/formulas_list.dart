@@ -20,33 +20,70 @@ class Formula {
 
 
 class _FormulasListState extends State<FormulasList> {
-
   final List<Formula> formulaList = [
-    Formula (
-      title: 'Проба',
-      routeName: '/pump_efficiency'),
     Formula(
       title:'Рассчёт эффективности насоса',
-      routeName: 'formuls/pump_efficiency', 
+      routeName: '/pump_efficiency', // t
       ),
 
-    Formula(
-      title: 'Рассчёт давления на входе',
-      routeName: 'formuls/input_pressure', 
-      ),
-
-    Formula(
-      title: 'Рассчёт дебит скаважины',
-      routeName: 'formuls/input_pressure', 
-      ),
-    Formula(
-      title: 'Тестовая страница',
-      routeName: '/test', 
-      ),
 
     Formula(
       title: 'Гидростатическое давление столба жидкости',
-      routeName: '/hidrostatic_pressure', 
+      routeName: '/hidrostatic_pressure', //t
+      ),
+
+    Formula(
+      title: 'Универсальная газовая формула',
+      routeName: '/universal_gas_formula', //t
+      ),
+
+    Formula(
+      title: 'Объём обсаженного ствола скважины',
+      routeName: '/v_obsash_stvola', //t
+      ),
+
+    Formula(
+      title: 'Объём открытого ствола скважины',
+      routeName: '/v_otkr_stvola', //t
+      ),
+
+    Formula(
+      title: 'Объём скважины без инструмента',
+      routeName: '/v_skv_bez_instr', //t 
+      ),
+
+    Formula(
+      title: 'Объём скважины с инструментом',
+      routeName: '/v_skv_s_instr', //t
+      ),
+
+    Formula(
+      title: 'Объём затруба',
+      routeName: '/v_zatruba', //t
+      ),
+
+    Formula(
+      title: 'Время прокачивания трубного объёма',
+      routeName: '/t_prok_trub_v', //t
+      ),
+
+    Formula(
+      title: 'Время прокачивания всего объёма скважины объёма',
+      routeName: '/t_prokach_all_v_shidk', //t
+      ),
+
+    Formula(
+      title: 'Время вымыва затрубного пространства',
+      routeName: '/t_vim_zatrub_protsr', //t
+      ),
+
+    Formula(
+      title: 'Объём в инструменте (V инстр)',
+      routeName: '/v_v_instrum', 
+      ),
+    Formula(
+      title: 'Объём металла (Vмет)',
+      routeName: '/v_metalla', 
       ),
   ];
 
@@ -60,7 +97,7 @@ class _FormulasListState extends State<FormulasList> {
   }
 
   @override
-  void dispose() // закрыл программу - почистил контроллер (зачем?)
+  void dispose() // закрыл программу - почистил контроллер
   {
     _searchController.dispose();
     super.dispose();
@@ -85,36 +122,43 @@ class _FormulasListState extends State<FormulasList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],
+      backgroundColor: Colors.white,
       appBar: MyAppBar(title: 'Формулы'),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column (
           children: [
             // поле для поиска
-            TextField(
-              controller: _searchController,
-              style: TextStyle(
-                color: Colors.white54,
-              ),
-              decoration: InputDecoration(
-                label: Text('Поиск'),
-                hint: Text('Введите формулу'),
-                prefix: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (query) {
-                _fiterFormulas(query);
-              },
-            ),
+            Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _fiterFormulas, // Фильтруем при каждом нажатии клавиши
+                    decoration: const InputDecoration(
+                      labelText: 'Поиск формул',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
             SizedBox(height: 10,),
             // список
             Expanded(
-              child: ListView.builder(
+              child: _filtredFormulaList.isEmpty 
+              ? const Center(child: Text("Ничего не найдено", style: TextStyle(color: Colors.grey, fontSize: 24),))
+              : ListView.builder(
                 itemCount: _filtredFormulaList.length,
                 itemBuilder: (BuildContext content, int index) {
                   final formula = _filtredFormulaList[index];
                   return Card(
+                    // elevation: 4.0,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(
+                        color: Colors.grey.withOpacity(0.5),
+                        width: 3,
+                      ),
+                      borderRadius: BorderRadius.circular(12.0)
+                    ),
                     child: ListTile(
                       title: Text(formula.title),
                       trailing: Icon(Icons.arrow_forward),

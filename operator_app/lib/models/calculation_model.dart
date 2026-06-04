@@ -1,42 +1,44 @@
-// тут типа переводчика для данных в SQLite (он глупенький и кроме текст (TEXT), числа (INTEGER, REAL)) 
-// ничего не знает
+// calculation_model.dart
 class Calculation {
-  int? id; // id может быть null до сохранения в БД
-  String title;
-  double result;
-  String createdAt;
-  int isSynced;
-
+  final int? id;
+  final String title;
+  final double result;
+  final String createdAt;
+  final int objectId;
+  final String formulaId;
+  int? reportId;
   // Конструктор
   Calculation({
     this.id,
     required this.title,
     required this.result,
     required this.createdAt,
-    this.isSynced = 0, // По умолчанию 0
+    required this.objectId,
+    required this.formulaId,
+    this.reportId,
   });
-
-  // Метод "toMap": превращает объект Calculation в Map.
-  // Нужно для сохранения в БД.
+  // Метод "toMap": превращает объект Calculation в Map
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'title': title,
       'result': result,
       'created_at': createdAt,
-      'is_synced': isSynced,
+      'objectId': objectId,
+      'formulaId': formulaId,
+      'reportId': reportId
     };
   }
-
   // Метод "fromMap": превращает Map в объект Calculation.
-  // Нужно для чтения из БД.
   factory Calculation.fromMap(Map<String, dynamic> map) {
     return Calculation(
       id: map['id'],
-      title: map['title'],
-      result: map['result'],
-      createdAt: map['created_at'],
-      isSynced: map['is_synced'],
+      title: map['title'] ?? '',
+      result: (map['result'] as num).toDouble(), 
+      createdAt: map['created_at'] ?? '',
+      objectId: map['objectId'] ?? 0,
+      formulaId: map['formulaId'] ?? '',
+      reportId: map['reportId'],
     );
   }
 }

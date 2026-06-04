@@ -9,7 +9,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Text(title),
       centerTitle: true,
-      backgroundColor: Colors.grey,
+      backgroundColor: const Color.fromARGB(255, 133, 212, 248),
     );
   }
 
